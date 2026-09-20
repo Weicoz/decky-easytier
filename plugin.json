@@ -1,0 +1,11 @@
+{
+  "name": "Decky EasyTier",
+  "author": "Weicoz",
+  "flags": ["root"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["network", "vpn", "root", "utility"],
+    "description": "EasyTier VPN mesh networking management plugin for Steam Deck",
+    "image": "https://raw.githubusercontent.com/EasyTier/EasyTier/main/docs/images/easytier.png"
+  }
+}

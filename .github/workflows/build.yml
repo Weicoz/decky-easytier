@@ -1,0 +1,51 @@
+name: Build Decky Plugin
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Build plugin
+        run: pnpm run build
+
+      - name: Package plugin
+        run: |
+          mkdir -p build/decky-easytier
+          cp -r dist main.py plugin.json README.md LICENSE build/decky-easytier/
+          cd build
+          zip -r ../decky-easytier.zip decky-easytier
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: decky-easytier
+          path: decky-easytier.zip
+
+      - name: Upload release asset
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: decky-easytier.zip
