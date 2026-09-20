@@ -1,4 +1,4 @@
-const manifest = {"name":"decky-easytier"};
+const manifest = {"name":"Decky Easytier"};
 const API_VERSION = 2;
 const internalAPIConnection = window.__DECKY_SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED_deckyLoaderAPIInit;
 if (!internalAPIConnection) {
@@ -804,12 +804,32 @@ const Content = () => {
         },
     ];
     const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
-    return (SP_JSX.jsxs("div", { children: [SP_JSX.jsx(DFL.Tabs, { tabs: tabs, activeTab: activeTab, onShowTab: setActiveTab }), SP_JSX.jsx("div", { style: { marginTop: "10px" }, children: currentTab.content })] }));
+    return (SP_JSX.jsxs("div", { style: { paddingBottom: "30px" }, children: [SP_JSX.jsx("div", { style: {
+                    display: "flex",
+                    gap: "6px",
+                    padding: "4px 0 10px 0",
+                    marginBottom: "10px",
+                    borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+                }, children: tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (SP_JSX.jsx("div", { style: {
+                            flex: 1,
+                            borderRadius: "6px",
+                            overflow: "hidden",
+                            border: isActive ? "2px solid #1a9fff" : "1px solid rgba(255, 255, 255, 0.15)",
+                            background: isActive ? "rgba(26, 159, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                            boxShadow: isActive ? "0 0 8px rgba(26, 159, 255, 0.35)" : "none",
+                        }, children: SP_JSX.jsx(DFL.ButtonItem, { layout: "inline", onClick: () => setActiveTab(tab.id), children: SP_JSX.jsx("span", { style: {
+                                    fontWeight: isActive ? "bold" : "normal",
+                                    color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
+                                    fontSize: "13px",
+                                }, children: tab.title }) }) }, tab.id));
+                }) }), SP_JSX.jsx("div", { children: currentTab.content })] }));
 };
 var index = definePlugin(() => {
     return {
-        name: "decky-easytier",
-        titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: "EasyTier" }),
+        name: "Decky Easytier",
+        titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: "Decky Easytier" }),
         content: SP_JSX.jsx(Content, {}),
         icon: SP_JSX.jsx(FaNetworkWired, {}),
         onDismount() { },

@@ -5,7 +5,6 @@ import {
   ToggleField,
   Field,
   TextField,
-  Tabs,
   staticClasses,
   Spinner,
 } from "@decky/ui";
@@ -814,19 +813,60 @@ const Content: FC = () => {
   const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
 
   return (
-    <div>
-      <Tabs tabs={tabs} activeTab={activeTab} onShowTab={setActiveTab} />
-      <div style={{ marginTop: "10px" }}>
-        {currentTab.content}
+    <div style={{ paddingBottom: "30px" }}>
+      {/* 顶部 Tab 胶囊切换栏，文档流布局，绝不悬浮遮挡 */}
+      <div
+        style={{
+          display: "flex",
+          gap: "6px",
+          padding: "4px 0 10px 0",
+          marginBottom: "10px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        }}
+      >
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <div
+              key={tab.id}
+              style={{
+                flex: 1,
+                borderRadius: "6px",
+                overflow: "hidden",
+                border: isActive ? "2px solid #1a9fff" : "1px solid rgba(255, 255, 255, 0.15)",
+                background: isActive ? "rgba(26, 159, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
+                boxShadow: isActive ? "0 0 8px rgba(26, 159, 255, 0.35)" : "none",
+              }}
+            >
+              <ButtonItem
+                layout="inline"
+                onClick={() => setActiveTab(tab.id)}
+              >
+                <span
+                  style={{
+                    fontWeight: isActive ? "bold" : "normal",
+                    color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
+                    fontSize: "13px",
+                  }}
+                >
+                  {tab.title}
+                </span>
+              </ButtonItem>
+            </div>
+          );
+        })}
       </div>
+
+      {/* 当前 Tab 内容，按文档流自然向下排布 */}
+      <div>{currentTab.content}</div>
     </div>
   );
 };
 
 export default definePlugin(() => {
   return {
-    name: "decky-easytier",
-    titleView: <div className={staticClasses.Title}>EasyTier</div>,
+    name: "Decky Easytier",
+    titleView: <div className={staticClasses.Title}>Decky Easytier</div>,
     content: <Content />,
     icon: <FaNetworkWired />,
     onDismount() {},
