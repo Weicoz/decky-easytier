@@ -647,11 +647,17 @@ const Content: FC = () => {
                 height: "90px",
                 background: "#0e141b",
                 color: "#dcdedf",
-                border: "1px solid rgba(255,255,255,0.2)",
-                borderRadius: "4px",
+                border: "1px solid rgba(255,255,255,0.25)",
+                borderRadius: "6px",
                 padding: "8px",
                 fontFamily: "monospace",
                 fontSize: "12px",
+                boxSizing: "border-box",
+                resize: "vertical",
+              }}
+              tabIndex={0}
+              onFocus={() => {
+                try { (window as any).SteamClient?.System?.ShowVirtualKeyboard?.(); } catch(e){}
               }}
               value={peersInput}
               onChange={(e) => setPeersInput(e.target.value)}
@@ -691,11 +697,17 @@ const Content: FC = () => {
                   height: "160px",
                   background: "#0e141b",
                   color: "#dcdedf",
-                  border: "1px solid rgba(255,255,255,0.2)",
-                  borderRadius: "4px",
+                  border: "1px solid rgba(255,255,255,0.25)",
+                  borderRadius: "6px",
                   padding: "8px",
                   fontFamily: "monospace",
                   fontSize: "12px",
+                  boxSizing: "border-box",
+                  resize: "vertical",
+                }}
+                tabIndex={0}
+                onFocus={() => {
+                  try { (window as any).SteamClient?.System?.ShowVirtualKeyboard?.(); } catch(e){}
                 }}
                 value={rawToml}
                 onChange={(e) => setRawToml(e.target.value)}
@@ -799,9 +811,14 @@ const Content: FC = () => {
     },
   ];
 
+  const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
+
   return (
     <div>
       <Tabs tabs={tabs} activeTab={activeTab} onShowTab={setActiveTab} />
+      <div style={{ marginTop: "10px" }}>
+        {currentTab.content}
+      </div>
     </div>
   );
 };

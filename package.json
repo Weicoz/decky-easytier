@@ -1,6 +1,6 @@
 {
   "name": "decky-easytier",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "EasyTier VPN mesh networking management plugin for Decky Loader on Steam Deck",
   "type": "module",
   "scripts": {

@@ -754,21 +754,35 @@ const Content = () => {
                                         height: "90px",
                                         background: "#0e141b",
                                         color: "#dcdedf",
-                                        border: "1px solid rgba(255,255,255,0.2)",
-                                        borderRadius: "4px",
+                                        border: "1px solid rgba(255,255,255,0.25)",
+                                        borderRadius: "6px",
                                         padding: "8px",
                                         fontFamily: "monospace",
                                         fontSize: "12px",
+                                        boxSizing: "border-box",
+                                        resize: "vertical",
+                                    }, tabIndex: 0, onFocus: () => {
+                                        try {
+                                            window.SteamClient?.System?.ShowVirtualKeyboard?.();
+                                        }
+                                        catch (e) { }
                                     }, value: peersInput, onChange: (e) => setPeersInput(e.target.value) })] }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleFillPublicPeers, children: t("peer_cfg_add_public") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleSaveQuickConfig, disabled: actionLoading, children: t("peer_cfg_save") }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("adv_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("adv_toml_toggle"), description: t("adv_toml_desc"), checked: showRawToml, onChange: setShowRawToml }) }), showRawToml && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("textarea", { style: {
                                         width: "100%",
                                         height: "160px",
                                         background: "#0e141b",
                                         color: "#dcdedf",
-                                        border: "1px solid rgba(255,255,255,0.2)",
-                                        borderRadius: "4px",
+                                        border: "1px solid rgba(255,255,255,0.25)",
+                                        borderRadius: "6px",
                                         padding: "8px",
                                         fontFamily: "monospace",
                                         fontSize: "12px",
+                                        boxSizing: "border-box",
+                                        resize: "vertical",
+                                    }, tabIndex: 0, onFocus: () => {
+                                        try {
+                                            window.SteamClient?.System?.ShowVirtualKeyboard?.();
+                                        }
+                                        catch (e) { }
                                     }, value: rawToml, onChange: (e) => setRawToml(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleSaveRawToml, disabled: actionLoading, children: t("adv_toml_save") }) })] }))] })] }));
     // Tab 3: Web 端管理
     const webContent = (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs(DFL.PanelSection, { title: t("web_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_status"), description: `${t("web_status_listening")}: ${webInfo?.port || 21010}`, children: SP_JSX.jsx("span", { style: { color: "#4caf50", fontWeight: "bold" }, children: "\u25CF RUNNING" }) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleOpenWebUi, children: t("web_open_btn") }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("web_remote_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_local"), description: webInfo?.url_local || "http://127.0.0.1:21010" }) }), webInfo?.url_lan && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_lan"), description: webInfo.url_lan }) })), webInfo?.url_easytier && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_easytier"), description: webInfo.url_easytier }) })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }, children: t("web_hint") }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("web_cloud_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_cloud_service"), description: "https://config-server.easytier.cn" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }, children: t("web_cloud_desc") }) })] })] }));
@@ -789,7 +803,8 @@ const Content = () => {
             content: webContent,
         },
     ];
-    return (SP_JSX.jsx("div", { children: SP_JSX.jsx(DFL.Tabs, { tabs: tabs, activeTab: activeTab, onShowTab: setActiveTab }) }));
+    const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
+    return (SP_JSX.jsxs("div", { children: [SP_JSX.jsx(DFL.Tabs, { tabs: tabs, activeTab: activeTab, onShowTab: setActiveTab }), SP_JSX.jsx("div", { style: { marginTop: "10px" }, children: currentTab.content })] }));
 };
 var index = definePlugin(() => {
     return {
