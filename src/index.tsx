@@ -5,6 +5,7 @@ import {
   ToggleField,
   Field,
   TextField,
+  Focusable,
   staticClasses,
   Spinner,
 } from "@decky/ui";
@@ -405,20 +406,23 @@ const Content: FC = () => {
 
       <PanelSection title={t("status_title")}>
         {status?.core_installed && (
-          <PanelSectionRow>
-            <Field
-              label={t("status_core_ver")}
-              description={status.core_version ? `v${status.core_version}` : t("core_ready")}
-            >
+          <>
+            <PanelSectionRow>
+              <Field
+                label={t("status_core_ver")}
+                description={status.core_version ? `v${status.core_version}` : t("core_ready")}
+              />
+            </PanelSectionRow>
+            <PanelSectionRow>
               <ButtonItem
-                layout="inline"
+                layout="below"
                 onClick={handleInstallCore}
                 disabled={installingCore || actionLoading}
               >
                 {installingCore ? t("core_updating") : t("core_reinstall")}
               </ButtonItem>
-            </Field>
-          </PanelSectionRow>
+            </PanelSectionRow>
+          </>
         )}
 
         <PanelSectionRow>
@@ -813,52 +817,63 @@ const Content: FC = () => {
   const currentTab = tabs.find((t) => t.id === activeTab) || tabs[0];
 
   return (
-    <div style={{ paddingBottom: "30px" }}>
-      {/* 顶部 Tab 胶囊切换栏，文档流布局，绝不悬浮遮挡 */}
-      <div
+    <div
+      style={{
+        width: "100%",
+        maxWidth: "100%",
+        boxSizing: "border-box",
+        overflowX: "hidden",
+        padding: "0 4px 30px 4px",
+      }}
+    >
+      {/* 顶部轻量级 Tab 胶囊切换栏：标准 Flex 宽度自适应、原生手柄焦点与防溢出 */}
+      <Focusable
         style={{
           display: "flex",
           gap: "6px",
           padding: "4px 0 10px 0",
-          marginBottom: "10px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          marginBottom: "12px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.12)",
+          width: "100%",
+          boxSizing: "border-box",
         }}
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <div
+            <Focusable
               key={tab.id}
               style={{
                 flex: 1,
+                padding: "8px 0",
+                textAlign: "center",
                 borderRadius: "6px",
-                overflow: "hidden",
-                border: isActive ? "2px solid #1a9fff" : "1px solid rgba(255, 255, 255, 0.15)",
-                background: isActive ? "rgba(26, 159, 255, 0.2)" : "rgba(255, 255, 255, 0.05)",
-                boxShadow: isActive ? "0 0 8px rgba(26, 159, 255, 0.35)" : "none",
+                border: isActive
+                  ? "2px solid #1a9fff"
+                  : "1px solid rgba(255, 255, 255, 0.12)",
+                background: isActive
+                  ? "rgba(26, 159, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.05)",
+                color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
+                fontWeight: isActive ? "bold" : "normal",
+                fontSize: "13px",
+                cursor: "pointer",
+                boxSizing: "border-box",
+                transition: "all 0.15s ease",
               }}
+              onClick={() => setActiveTab(tab.id)}
+              onOKButton={() => setActiveTab(tab.id)}
             >
-              <ButtonItem
-                layout="inline"
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <span
-                  style={{
-                    fontWeight: isActive ? "bold" : "normal",
-                    color: isActive ? "#ffffff" : "rgba(255, 255, 255, 0.75)",
-                    fontSize: "13px",
-                  }}
-                >
-                  {tab.title}
-                </span>
-              </ButtonItem>
-            </div>
+              {tab.title}
+            </Focusable>
           );
         })}
-      </div>
+      </Focusable>
 
-      {/* 当前 Tab 内容，按文档流自然向下排布 */}
-      <div>{currentTab.content}</div>
+      {/* 当前 Tab 内容，自适应充满抽屉容器 */}
+      <div style={{ width: "100%", maxWidth: "100%", boxSizing: "border-box" }}>
+        {currentTab.content}
+      </div>
     </div>
   );
 };
@@ -867,6 +882,7 @@ export default definePlugin(() => {
   return {
     name: "Decky Easytier",
     titleView: <div className={staticClasses.Title}>Decky Easytier</div>,
+    alwaysRender: true,
     content: <Content />,
     icon: <FaNetworkWired />,
     onDismount() {},
