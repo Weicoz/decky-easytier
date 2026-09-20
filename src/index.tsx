@@ -15,6 +15,9 @@ import { FaNetworkWired, FaPlay, FaStop, FaRedo } from "react-icons/fa";
 
 interface ServiceStatus {
   installed: boolean;
+  core_installed?: boolean;
+  config_exists?: boolean;
+  core_version?: string;
   active: boolean;
   status: string;
   enabled: boolean;
@@ -70,6 +73,7 @@ interface WebInfo {
 
 // 后端 API 声明
 const getServiceStatus = callable<[], ServiceStatus>("get_service_status");
+const installEasyTier = callable<[], { success: boolean; message?: string; version?: string }>("install_easytier");
 const startService = callable<[], boolean>("start_service");
 const stopService = callable<[], boolean>("stop_service");
 const restartService = callable<[], boolean>("restart_service");
@@ -92,6 +96,7 @@ const Content: FC = () => {
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [pingResults, setPingResults] = useState<Record<string, string>>({});
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+  const [installingCore, setInstallingCore] = useState<boolean>(false);
 
   // 配置表单状态
   const [netName, setNetName] = useState<string>("");
@@ -165,6 +170,25 @@ const Content: FC = () => {
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleInstallCore = async () => {
+    setInstallingCore(true);
+    toaster.toast({ title: "EasyTier", body: "正在在线下载官方核心组件，请稍候..." });
+    try {
+      const res = await installEasyTier();
+      if (res && res.success) {
+        toaster.toast({ title: "EasyTier", body: res.message || "核心安装成功并就绪！" });
+        await loadData();
+        await loadConfigData();
+      } else {
+        toaster.toast({ title: "EasyTier", body: `安装失败: ${res?.message || "网络或解压异常"}` });
+      }
+    } catch (e: any) {
+      toaster.toast({ title: "EasyTier", body: `安装异常: ${e?.message || e}` });
+    } finally {
+      setInstallingCore(false);
+    }
+  };
 
   const handleStart = async () => {
     setActionLoading(true);
@@ -303,17 +327,49 @@ const Content: FC = () => {
   const statusContent = (
     <div>
       {status && !status.installed && (
-        <PanelSection title="⚠️ 组件安装提示">
+        <PanelSection title="🚀 核心组件一键安装">
           <PanelSectionRow>
             <Field
-              label="核心组件未检测到"
-              description="请确保 easytier-core 已放入 ~/.local/bin/ 或参考 README 执行安装脚本"
+              label="未检测到 EasyTier 核心"
+              description="系统尚未安装或未检测到 easytier-core。点击下方按钮即可一键在线下载官方最新 x86_64 核心并自动初始化系统守护服务，免去终端命令行操作。"
             />
+          </PanelSectionRow>
+          <PanelSectionRow>
+            <ButtonItem
+              layout="below"
+              onClick={handleInstallCore}
+              disabled={installingCore || actionLoading}
+            >
+              {installingCore ? (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
+                  <Spinner /> 正在下载与部署核心组件...
+                </div>
+              ) : (
+                "🚀 一键在线下载并安装 EasyTier 核心"
+              )}
+            </ButtonItem>
           </PanelSectionRow>
         </PanelSection>
       )}
 
       <PanelSection title="运行状态">
+        {status?.core_installed && (
+          <PanelSectionRow>
+            <Field
+              label="核心版本"
+              description={status.core_version ? `v${status.core_version}` : "已就绪"}
+            >
+              <ButtonItem
+                layout="inline"
+                onClick={handleInstallCore}
+                disabled={installingCore || actionLoading}
+              >
+                {installingCore ? "更新中..." : "重新安装/更新"}
+              </ButtonItem>
+            </Field>
+          </PanelSectionRow>
+        )}
+
         <PanelSectionRow>
           <Field label="服务状态" description={status?.active ? "正在运行中" : "已停止"}>
             <span style={{ color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }}>

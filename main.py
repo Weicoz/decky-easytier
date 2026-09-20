@@ -1,8 +1,12 @@
 import asyncio
 import os
+import pwd
 import re
+import shutil
 import socket
 import subprocess
+import urllib.request
+import zipfile
 from typing import Any, Dict, List, Optional
 
 try:
@@ -17,13 +21,61 @@ except ImportError:
 
 EASYTIER_CORE = "/home/deck/.local/bin/easytier-core"
 EASYTIER_CLI = "/home/deck/.local/bin/easytier-cli"
+EASYTIER_WEB = "/home/deck/.local/bin/easytier-web"
 CONFIG_PATH = "/home/deck/.config/easytier/config.toml"
+SERVICE_PATH = "/etc/systemd/system/easytier.service"
 WEB_PORT = 21010
 
 SYSTEMCTL = "/usr/bin/systemctl"
 PGREP = "/usr/bin/pgrep"
 PYTHON3 = "/usr/bin/python3"
 ENV = dict(os.environ, PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+ENV.pop("LD_LIBRARY_PATH", None)
+ENV.pop("PYTHONPATH", None)
+ENV.pop("PYTHONHOME", None)
+
+DEFAULT_CONFIG_TEMPLATE = """# EasyTier 基础配置文件 (由 Decky EasyTier 自动生成)
+hostname = "steamdeck"
+ipv6_public_addr_auto = true
+dhcp = true
+listeners = ["tcp://0.0.0.0:11010", "udp://0.0.0.0:11010", "wg://0.0.0.0:11011"]
+
+[network_identity]
+network_name = ""
+network_secret = ""
+
+[[peer]]
+uri = "tcp://public.easytier.top:11010"
+
+[[peer]]
+uri = "tcp://39.108.52.138:11010"
+
+[flags]
+latency_first = true
+enable_udp_broadcast_relay = true
+use_smoltcp = true
+enable_exit_node = true
+disable_quic_input = true
+disable_kcp_input = true
+proxy_forward_by_system = true
+relay_all_peer_rpc = true
+accept_dns = true
+"""
+
+DEFAULT_SERVICE_CONTENT = """[Unit]
+Description=EasyTier Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/home/deck/.local/bin/easytier-core -c /home/deck/.config/easytier/config.toml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+"""
 
 
 class Plugin:
@@ -31,10 +83,11 @@ class Plugin:
         self.web_process: Optional[subprocess.Popen] = None
 
     async def _main(self):
-        # 确保二进制执行权限
+        # 确保二进制执行权限与服务守护配置
         if os.path.exists(EASYTIER_CORE):
             os.system(f"chmod 4755 {EASYTIER_CORE} 2>/dev/null")
             os.system(f"setcap cap_net_admin,cap_net_bind_service+ep {EASYTIER_CORE} 2>/dev/null")
+            self._sync_setup_config_and_service()
 
         # 开启 Linux 内核 IPv4 转发 (游戏广播/出口节点必备)
         try:
@@ -114,8 +167,15 @@ class Plugin:
             except Exception:
                 pass
 
+        core_installed = os.path.exists(EASYTIER_CORE)
+        config_exists = os.path.exists(CONFIG_PATH)
+        core_version = self._sync_get_core_version()
+
         return {
-            "installed": os.path.exists(EASYTIER_CORE) and os.path.exists(CONFIG_PATH),
+            "installed": core_installed and config_exists,
+            "core_installed": core_installed,
+            "config_exists": config_exists,
+            "core_version": core_version,
             "active": is_active,
             "status": active_status,
             "enabled": is_enabled,
@@ -436,4 +496,190 @@ class Plugin:
             "easytier_ip": easytier_ip,
             "url_easytier": f"http://{easytier_ip}:{WEB_PORT}" if easytier_ip else "",
             "urls": all_urls
+        }
+
+    def _sync_find_latest_version(self) -> str:
+        endpoints = [
+            "https://github.com/EasyTier/EasyTier/releases/latest",
+            "https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/latest",
+        ]
+        for url in endpoints:
+            try:
+                res = subprocess.run(
+                    ["/usr/bin/curl", "-sI", "--connect-timeout", "6", "-m", "10", url],
+                    capture_output=True, text=True, env=ENV
+                )
+                if res.returncode == 0:
+                    m = re.search(r'location:\s*.*/tag/([^\r\n]+)', res.stdout, re.IGNORECASE)
+                    if m:
+                        return m.group(1).strip()
+            except Exception:
+                pass
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=6) as resp:
+                    final_url = resp.geturl()
+                    m = re.search(r'/tag/([^/]+)', final_url)
+                    if m:
+                        return m.group(1).strip()
+            except Exception:
+                continue
+        return "v2.6.4"
+
+    def _sync_download_archive(self, tag: str, tmp_dest: str):
+        tag_clean = tag if tag.startswith("v") else f"v{tag}"
+        candidates = [
+            f"https://github.com/EasyTier/EasyTier/releases/download/{tag_clean}/easytier-linux-x86_64-{tag_clean}.zip",
+            f"https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/{tag_clean}/easytier-linux-x86_64-{tag_clean}.zip",
+            f"https://mirror.ghproxy.com/https://github.com/EasyTier/EasyTier/releases/download/{tag_clean}/easytier-linux-x86_64-{tag_clean}.zip",
+            "https://github.com/EasyTier/EasyTier/releases/download/v2.6.4/easytier-linux-x86_64-v2.6.4.zip",
+            "https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/v2.6.4/easytier-linux-x86_64-v2.6.4.zip",
+        ]
+        errs = []
+        for url in candidates:
+            # 优先使用系统原生 curl，性能更好并支持断点连接与长超时
+            try:
+                res = subprocess.run(
+                    ["curl", "-fL", "--connect-timeout", "8", "-m", "180", url, "-o", tmp_dest],
+                    capture_output=True, text=True, env=ENV
+                )
+                if res.returncode == 0 and os.path.exists(tmp_dest) and os.path.getsize(tmp_dest) > 1000000:
+                    return True, "ok"
+                errs.append(f"curl({res.returncode}): {res.stderr[:60]}")
+            except Exception as e:
+                errs.append(f"curl_exc: {e}")
+
+            # Python 原生回退下载
+            try:
+                req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+                with urllib.request.urlopen(req, timeout=120) as resp, open(tmp_dest, "wb") as f:
+                    shutil.copyfileobj(resp, f)
+                if os.path.exists(tmp_dest) and os.path.getsize(tmp_dest) > 1000000:
+                    return True, "ok"
+                errs.append("urllib_small_file")
+            except Exception as e:
+                errs.append(f"urllib_exc: {e}")
+                if os.path.exists(tmp_dest):
+                    try: os.remove(tmp_dest)
+                    except Exception: pass
+                continue
+        return False, " | ".join(errs)
+
+    def _sync_extract_binaries(self, zip_path: str) -> bool:
+        bin_dir = "/home/deck/.local/bin"
+        os.makedirs(bin_dir, exist_ok=True)
+
+        try:
+            deck_user = pwd.getpwnam("deck")
+            deck_uid, deck_gid = deck_user.pw_uid, deck_user.pw_gid
+        except Exception:
+            deck_uid, deck_gid = 1000, 1000
+
+        with zipfile.ZipFile(zip_path, "r") as z:
+            for name in z.namelist():
+                base = os.path.basename(name)
+                if base in ["easytier-core", "easytier-cli", "easytier-web"]:
+                    target_file = os.path.join(bin_dir, base)
+                    target_tmp = target_file + ".new"
+                    with z.open(name) as src, open(target_tmp, "wb") as dst:
+                        shutil.copyfileobj(src, dst)
+                    os.chmod(target_tmp, 0o755)
+                    try:
+                        os.chown(target_tmp, deck_uid, deck_gid)
+                    except Exception:
+                        pass
+                    # 原子重命名替换，完美杜绝 Linux Text file busy (ETXTBSY) 报错
+                    os.replace(target_tmp, target_file)
+
+        if os.path.exists(EASYTIER_CORE):
+            os.system(f"chmod 4755 {EASYTIER_CORE} 2>/dev/null")
+            os.system(f"setcap cap_net_admin,cap_net_bind_service+ep {EASYTIER_CORE} 2>/dev/null")
+
+        return os.path.exists(EASYTIER_CORE) and os.path.exists(EASYTIER_CLI)
+
+    def _sync_setup_config_and_service(self):
+        try:
+            deck_user = pwd.getpwnam("deck")
+            deck_uid, deck_gid = deck_user.pw_uid, deck_user.pw_gid
+        except Exception:
+            deck_uid, deck_gid = 1000, 1000
+
+        # 默认配置
+        if not os.path.exists(CONFIG_PATH):
+            os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                f.write(DEFAULT_CONFIG_TEMPLATE)
+            try:
+                os.chown(os.path.dirname(CONFIG_PATH), deck_uid, deck_gid)
+                os.chown(CONFIG_PATH, deck_uid, deck_gid)
+            except Exception:
+                pass
+
+        # 注册/更新 systemd 服务
+        try:
+            if not os.path.exists(SERVICE_PATH):
+                with open(SERVICE_PATH, "w", encoding="utf-8") as f:
+                    f.write(DEFAULT_SERVICE_CONTENT)
+                subprocess.run([SYSTEMCTL, "daemon-reload"], env=ENV)
+                subprocess.run([SYSTEMCTL, "enable", "easytier"], env=ENV)
+        except Exception:
+            pass
+
+    def _sync_get_core_version(self) -> str:
+        if not os.path.exists(EASYTIER_CORE):
+            return ""
+        try:
+            res = subprocess.run([EASYTIER_CORE, "--version"], capture_output=True, text=True, timeout=3, env=ENV)
+            if res.returncode == 0:
+                m = re.search(r"easytier-core\s+([^\s]+)", res.stdout)
+                if m:
+                    return m.group(1)
+                return res.stdout.strip()
+        except Exception:
+            pass
+        return ""
+
+    def _sync_install_easytier(self) -> Dict[str, Any]:
+        tmp_zip = "/tmp/easytier-latest.zip"
+        try:
+            tag = self._sync_find_latest_version()
+            ok, details = self._sync_download_archive(tag, tmp_zip)
+            if not ok:
+                return {"success": False, "message": f"下载 EasyTier 核心失败: {details}"}
+
+            # 暂停运行中服务避免句柄冲突
+            subprocess.run([SYSTEMCTL, "stop", "easytier"], env=ENV)
+
+            extracted = self._sync_extract_binaries(tmp_zip)
+            if not extracted:
+                return {"success": False, "message": "解压核心文件失败"}
+
+            self._sync_setup_config_and_service()
+
+            # 重新拉起守护服务
+            subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV)
+
+            ver = self._sync_get_core_version()
+            return {
+                "success": True,
+                "message": f"EasyTier 核心 ({ver or tag}) 安装成功！已就绪",
+                "version": ver or tag
+            }
+        except Exception as e:
+            return {"success": False, "message": f"安装异常: {str(e)}"}
+        finally:
+            if os.path.exists(tmp_zip):
+                try: os.remove(tmp_zip)
+                except Exception: pass
+
+    async def install_easytier(self) -> Dict[str, Any]:
+        return await asyncio.to_thread(self._sync_install_easytier)
+
+    async def get_core_info(self) -> Dict[str, Any]:
+        ver = await asyncio.to_thread(self._sync_get_core_version)
+        return {
+            "installed": os.path.exists(EASYTIER_CORE),
+            "version": ver,
+            "core_path": EASYTIER_CORE,
+            "config_path": CONFIG_PATH,
         }

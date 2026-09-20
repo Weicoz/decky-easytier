@@ -1,20 +1,72 @@
 #!/usr/bin/env python3
 import json
 import os
+import pwd
 import re
+import shutil
 import socket
 import subprocess
+import urllib.request
+import zipfile
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 EASYTIER_CORE = "/home/deck/.local/bin/easytier-core"
 EASYTIER_CLI = "/home/deck/.local/bin/easytier-cli"
+EASYTIER_WEB = "/home/deck/.local/bin/easytier-web"
 CONFIG_PATH = "/home/deck/.config/easytier/config.toml"
+SERVICE_PATH = "/etc/systemd/system/easytier.service"
 WEB_PORT = 21010
 SYSTEMCTL = "/usr/bin/systemctl"
 PGREP = "/usr/bin/pgrep"
 ENV = dict(os.environ, PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+ENV.pop("LD_LIBRARY_PATH", None)
+ENV.pop("PYTHONPATH", None)
+ENV.pop("PYTHONHOME", None)
+
+DEFAULT_CONFIG_TEMPLATE = """# EasyTier 基础配置文件 (由 Decky EasyTier 自动生成)
+hostname = "steamdeck"
+ipv6_public_addr_auto = true
+dhcp = true
+listeners = ["tcp://0.0.0.0:11010", "udp://0.0.0.0:11010", "wg://0.0.0.0:11011"]
+
+[network_identity]
+network_name = ""
+network_secret = ""
+
+[[peer]]
+uri = "tcp://public.easytier.top:11010"
+
+[[peer]]
+uri = "tcp://39.108.52.138:11010"
+
+[flags]
+latency_first = true
+enable_udp_broadcast_relay = true
+use_smoltcp = true
+enable_exit_node = true
+disable_quic_input = true
+disable_kcp_input = true
+proxy_forward_by_system = true
+relay_all_peer_rpc = true
+accept_dns = true
+"""
+
+DEFAULT_SERVICE_CONTENT = """[Unit]
+Description=EasyTier Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/home/deck/.local/bin/easytier-core -c /home/deck/.config/easytier/config.toml
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+"""
 
 WEB_HTML = """<!DOCTYPE html>
 <html lang="zh-CN">
@@ -85,6 +137,14 @@ WEB_HTML = """<!DOCTYPE html>
     <span>📱 局域网访问: <strong id="lan-url" style="color: #58a6ff; font-family: monospace;">-</strong></span>
     <span>🌐 异地组网访问: <strong id="easytier-url" style="color: #3fb950; font-family: monospace;">-</strong></span>
     <span style="font-size: 12px; color: #8b949e;">(手机在同一 Wi-Fi 打开上方局域网地址即可免手柄操作)</span>
+  </div>
+
+  <div id="install-banner" style="display: none; background: rgba(234, 179, 8, 0.12); border: 1px solid rgba(234, 179, 8, 0.35); border-radius: 8px; padding: 14px 18px; margin-bottom: 20px; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px;">
+    <div>
+      <div style="font-weight: 600; color: #facc15; font-size: 15px; margin-bottom: 4px;">⚠️ 未检测到 EasyTier 核心组件</div>
+      <div style="font-size: 13px; color: #8b949e;">系统尚未安装或未检测到 easytier-core。您可以点击右侧按钮，一键在线下载官方最新核心并完成配置。</div>
+    </div>
+    <button id="btn-install-core" class="primary" style="background: #d97706; border-color: #b45309;" onclick="doInstallCore()">🚀 一键自动安装 EasyTier 核心</button>
   </div>
 
   <div class="grid">
@@ -217,6 +277,15 @@ WEB_HTML = """<!DOCTYPE html>
           badge.innerText = "● 已停止 (STOPPED)";
         }
 
+        const installBanner = document.getElementById("install-banner");
+        if (installBanner) {
+          if (res.status && !res.status.installed) {
+            installBanner.style.display = "flex";
+          } else {
+            installBanner.style.display = "none";
+          }
+        }
+
         if (res.network) {
           document.getElementById("lan-url").innerText = res.network.url_lan || "未连接物理 Wi-Fi";
           document.getElementById("easytier-url").innerText = res.network.url_easytier || "未激活虚拟网";
@@ -298,6 +367,25 @@ WEB_HTML = """<!DOCTYPE html>
         showToast("操作失败");
       }
       setTimeout(fetchData, 1000);
+    }
+
+    async function doInstallCore() {
+      const btn = document.getElementById("btn-install-core");
+      if (btn) { btn.disabled = true; btn.innerText = "⏳ 正在下载并配置核心，请稍候..."; }
+      showToast("正在在线下载 EasyTier 官方最新核心，请稍候...");
+      try {
+        const res = await fetch("/api/install_core", { method: "POST" }).then(r => r.json());
+        if (res.success) {
+          showToast("✅ " + (res.message || "核心安装成功！"));
+          setTimeout(() => { fetchData(); loadConfig(); }, 1200);
+        } else {
+          showToast("❌ 安装失败: " + (res.message || res.error || "未知错误"));
+        }
+      } catch (e) {
+        showToast("❌ 请求失败，请检查连接");
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = "🚀 一键自动安装 EasyTier 核心"; }
+      }
     }
 
     async function saveQuickConfig() {
@@ -411,12 +499,191 @@ def get_service_status():
     except Exception:
         pass
 
+    core_installed = os.path.exists(EASYTIER_CORE)
+    config_exists = os.path.exists(CONFIG_PATH)
+    core_version = get_core_version()
+
     return {
-        "installed": os.path.exists(EASYTIER_CORE) and os.path.exists(CONFIG_PATH),
+        "installed": core_installed and config_exists,
+        "core_installed": core_installed,
+        "config_exists": config_exists,
+        "core_version": core_version,
         "active": is_active,
         "status": active_status,
         "enabled": is_enabled,
     }
+
+
+def find_latest_easytier_version() -> str:
+    endpoints = [
+        "https://github.com/EasyTier/EasyTier/releases/latest",
+        "https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/latest",
+    ]
+    for url in endpoints:
+        try:
+            res = subprocess.run(
+                ["/usr/bin/curl", "-sI", "--connect-timeout", "6", "-m", "10", url],
+                capture_output=True, text=True, env=ENV
+            )
+            if res.returncode == 0:
+                m = re.search(r'location:\s*.*/tag/([^\r\n]+)', res.stdout, re.IGNORECASE)
+                if m:
+                    return m.group(1).strip()
+        except Exception:
+            pass
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                final_url = resp.geturl()
+                m = re.search(r'/tag/([^/]+)', final_url)
+                if m:
+                    return m.group(1).strip()
+        except Exception:
+            continue
+    return "v2.6.4"
+
+
+def download_easytier_archive(tag: str, tmp_dest: str):
+    tag_clean = tag if tag.startswith("v") else f"v{tag}"
+    candidates = [
+        f"https://github.com/EasyTier/EasyTier/releases/download/{tag_clean}/easytier-linux-x86_64-{tag_clean}.zip",
+        f"https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/{tag_clean}/easytier-linux-x86_64-{tag_clean}.zip",
+        f"https://mirror.ghproxy.com/https://github.com/EasyTier/EasyTier/releases/download/{tag_clean}/easytier-linux-x86_64-{tag_clean}.zip",
+        "https://github.com/EasyTier/EasyTier/releases/download/v2.6.4/easytier-linux-x86_64-v2.6.4.zip",
+        "https://ghfast.top/https://github.com/EasyTier/EasyTier/releases/download/v2.6.4/easytier-linux-x86_64-v2.6.4.zip",
+    ]
+    errs = []
+    for url in candidates:
+        # 优先使用系统原生 curl，性能更好并支持断点连接与长超时
+        try:
+            res = subprocess.run(
+                ["curl", "-fL", "--connect-timeout", "8", "-m", "180", url, "-o", tmp_dest],
+                capture_output=True, text=True, env=ENV
+            )
+            if res.returncode == 0 and os.path.exists(tmp_dest) and os.path.getsize(tmp_dest) > 1000000:
+                return True, "ok"
+            errs.append(f"curl({res.returncode}): {res.stderr[:60]}")
+        except Exception as e:
+            errs.append(f"curl_exc: {e}")
+
+        # Python 原生回退下载
+        try:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=120) as resp, open(tmp_dest, "wb") as f:
+                shutil.copyfileobj(resp, f)
+            if os.path.exists(tmp_dest) and os.path.getsize(tmp_dest) > 1000000:
+                return True, "ok"
+            errs.append("urllib_small_file")
+        except Exception as e:
+            errs.append(f"urllib_exc: {e}")
+            if os.path.exists(tmp_dest):
+                try: os.remove(tmp_dest)
+                except Exception: pass
+            continue
+    return False, " | ".join(errs)
+
+
+def extract_binaries(zip_path: str) -> bool:
+    bin_dir = "/home/deck/.local/bin"
+    os.makedirs(bin_dir, exist_ok=True)
+    try:
+        deck_user = pwd.getpwnam("deck")
+        deck_uid, deck_gid = deck_user.pw_uid, deck_user.pw_gid
+    except Exception:
+        deck_uid, deck_gid = 1000, 1000
+
+    with zipfile.ZipFile(zip_path, "r") as z:
+        for name in z.namelist():
+            base = os.path.basename(name)
+            if base in ["easytier-core", "easytier-cli", "easytier-web"]:
+                target_file = os.path.join(bin_dir, base)
+                target_tmp = target_file + ".new"
+                with z.open(name) as src, open(target_tmp, "wb") as dst:
+                    shutil.copyfileobj(src, dst)
+                os.chmod(target_tmp, 0o755)
+                try:
+                    os.chown(target_tmp, deck_uid, deck_gid)
+                except Exception:
+                    pass
+                # 原子重命名替换，完美杜绝 Linux Text file busy (ETXTBSY) 报错
+                os.replace(target_tmp, target_file)
+
+    if os.path.exists(EASYTIER_CORE):
+        os.system(f"chmod 4755 {EASYTIER_CORE} 2>/dev/null")
+        os.system(f"setcap cap_net_admin,cap_net_bind_service+ep {EASYTIER_CORE} 2>/dev/null")
+
+    return os.path.exists(EASYTIER_CORE) and os.path.exists(EASYTIER_CLI)
+
+
+def setup_config_and_service():
+    try:
+        deck_user = pwd.getpwnam("deck")
+        deck_uid, deck_gid = deck_user.pw_uid, deck_user.pw_gid
+    except Exception:
+        deck_uid, deck_gid = 1000, 1000
+
+    if not os.path.exists(CONFIG_PATH):
+        os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            f.write(DEFAULT_CONFIG_TEMPLATE)
+        try:
+            os.chown(os.path.dirname(CONFIG_PATH), deck_uid, deck_gid)
+            os.chown(CONFIG_PATH, deck_uid, deck_gid)
+        except Exception:
+            pass
+
+    try:
+        if not os.path.exists(SERVICE_PATH):
+            with open(SERVICE_PATH, "w", encoding="utf-8") as f:
+                f.write(DEFAULT_SERVICE_CONTENT)
+            subprocess.run([SYSTEMCTL, "daemon-reload"], env=ENV)
+            subprocess.run([SYSTEMCTL, "enable", "easytier"], env=ENV)
+    except Exception:
+        pass
+
+
+def get_core_version() -> str:
+    if not os.path.exists(EASYTIER_CORE):
+        return ""
+    try:
+        res = subprocess.run([EASYTIER_CORE, "--version"], capture_output=True, text=True, timeout=3, env=ENV)
+        if res.returncode == 0:
+            m = re.search(r"easytier-core\s+([^\s]+)", res.stdout)
+            if m:
+                return m.group(1)
+            return res.stdout.strip()
+    except Exception:
+        pass
+    return ""
+
+
+def install_easytier_core() -> Dict[str, Any]:
+    tmp_zip = "/tmp/easytier-web-install.zip"
+    try:
+        tag = find_latest_easytier_version()
+        ok, details = download_easytier_archive(tag, tmp_zip)
+        if not ok:
+            return {"success": False, "message": f"下载 EasyTier 核心压缩包失败: {details}"}
+
+        # 暂时停止当前正在运行的服务以释放句柄
+        subprocess.run([SYSTEMCTL, "stop", "easytier"], env=ENV)
+
+        if not extract_binaries(tmp_zip):
+            return {"success": False, "message": "解压核心文件失败"}
+
+        setup_config_and_service()
+
+        # 重新启动守护服务
+        subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV)
+
+        ver = get_core_version()
+        return {"success": True, "message": f"EasyTier 核心 ({ver or tag}) 安装就绪！", "version": ver or tag}
+    except Exception as e:
+        return {"success": False, "message": f"安装异常: {str(e)}"}
+    finally:
+        if os.path.exists(tmp_zip):
+            try: os.remove(tmp_zip)
+            except Exception: pass
 
 
 def get_node_info():
@@ -677,6 +944,11 @@ class WebHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(length) if length > 0 else b"{}"
         try: payload = json.loads(body.decode("utf-8"))
         except Exception: payload = {}
+
+        if path == "/api/install_core":
+            res = install_easytier_core()
+            self._send_json(res)
+            return
 
         if path == "/api/action":
             act = payload.get("action")
