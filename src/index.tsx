@@ -302,6 +302,17 @@ const Content: FC = () => {
   // Tab 1: 运行状态
   const statusContent = (
     <div>
+      {status && !status.installed && (
+        <PanelSection title="⚠️ 组件安装提示">
+          <PanelSectionRow>
+            <Field
+              label="核心组件未检测到"
+              description="请确保 easytier-core 已放入 ~/.local/bin/ 或参考 README 执行安装脚本"
+            />
+          </PanelSectionRow>
+        </PanelSection>
+      )}
+
       <PanelSection title="运行状态">
         <PanelSectionRow>
           <Field label="服务状态" description={status?.active ? "正在运行中" : "已停止"}>
@@ -379,6 +390,7 @@ const Content: FC = () => {
             const isP2P = peer.cost.toLowerCase().includes("p2p");
             const rawIp = peer.ipv4.split("/")[0].trim();
             const pingText = pingResults[rawIp];
+            const traffic = `${peer.rx || "0 B"} / ${peer.tx || "0 B"}`;
 
             return (
               <PanelSectionRow key={idx}>
@@ -396,6 +408,9 @@ const Content: FC = () => {
                         延时: {peer.latency || "-"}
                         {" | "}
                         丢包: {peer.loss || "0%"}
+                      </div>
+                      <div style={{ fontSize: "11px", color: "#8b949e", marginTop: "2px" }}>
+                        流量(收/发): {traffic}
                       </div>
                       {pingText && (
                         <div style={{ color: "#00e5ff", marginTop: "2px" }}>

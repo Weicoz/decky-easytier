@@ -700,6 +700,13 @@ class WebHandler(BaseHTTPRequestHandler):
         self.end_headers()
 
 
+class ReusableHTTPServer(HTTPServer):
+    allow_reuse_address = True
+
+
 if __name__ == "__main__":
-    server = HTTPServer(("0.0.0.0", WEB_PORT), WebHandler)
-    server.serve_forever()
+    server = ReusableHTTPServer(("0.0.0.0", WEB_PORT), WebHandler)
+    try:
+        server.serve_forever()
+    except (KeyboardInterrupt, SystemExit):
+        server.server_close()

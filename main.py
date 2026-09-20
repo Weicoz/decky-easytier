@@ -36,6 +36,12 @@ class Plugin:
             os.system(f"chmod 4755 {EASYTIER_CORE} 2>/dev/null")
             os.system(f"setcap cap_net_admin,cap_net_bind_service+ep {EASYTIER_CORE} 2>/dev/null")
 
+        # 开启 Linux 内核 IPv4 转发 (游戏广播/出口节点必备)
+        try:
+            subprocess.run(["/usr/bin/sysctl", "-w", "net.ipv4.ip_forward=1"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ENV)
+        except Exception:
+            pass
+
         # 启动独立的 Web Dashboard 进程 (通过系统原生 Python3)
         self._start_web_server()
 
@@ -44,13 +50,11 @@ class Plugin:
 
     def _start_web_server(self):
         try:
-            # 查找 web_server.py 路径
             web_script = os.path.join(decky.DECKY_PLUGIN_DIR, "web_server.py")
             if not os.path.exists(web_script):
                 web_script = "/home/deck/homebrew/plugins/decky-easytier/web_server.py"
 
             if os.path.exists(web_script):
-                # 检查是否已有运行中的实例，避免重复启动
                 res = subprocess.run([PGREP, "-f", "web_server.py"], capture_output=True, env=ENV)
                 if res.returncode != 0:
                     self.web_process = subprocess.Popen(
@@ -69,14 +73,12 @@ class Plugin:
             except Exception:
                 pass
             self.web_process = None
-        # 确保彻底停止
         try:
             subprocess.run(["pkill", "-f", "web_server.py"], env=ENV)
         except Exception:
             pass
 
-    async def get_service_status(self) -> Dict[str, Any]:
-        """获取 systemd 服务与进程状态"""
+    def _sync_get_service_status(self) -> Dict[str, Any]:
         active_status = ""
         is_active = False
         is_enabled = False
@@ -88,7 +90,6 @@ class Plugin:
         except Exception:
             pass
 
-        # 进程检测兜底
         if not is_active:
             try:
                 res_p = subprocess.run([PGREP, "-f", "easytier-core"], capture_output=True, env=ENV)
@@ -104,6 +105,15 @@ class Plugin:
         except Exception:
             pass
 
+        # 若服务激活但 web_server 异常退出，自愈拉起
+        if is_active:
+            try:
+                res_w = subprocess.run([PGREP, "-f", "web_server.py"], capture_output=True, env=ENV)
+                if res_w.returncode != 0:
+                    self._start_web_server()
+            except Exception:
+                pass
+
         return {
             "installed": os.path.exists(EASYTIER_CORE) and os.path.exists(CONFIG_PATH),
             "active": is_active,
@@ -111,40 +121,45 @@ class Plugin:
             "enabled": is_enabled,
         }
 
+    async def get_service_status(self) -> Dict[str, Any]:
+        return await asyncio.to_thread(self._sync_get_service_status)
+
     async def start_service(self) -> bool:
+        def _run():
+            return subprocess.run([SYSTEMCTL, "start", "easytier"], env=ENV).returncode == 0
         try:
-            res = subprocess.run([SYSTEMCTL, "start", "easytier"], env=ENV)
-            return res.returncode == 0
+            return await asyncio.to_thread(_run)
         except Exception:
             return False
 
     async def stop_service(self) -> bool:
+        def _run():
+            return subprocess.run([SYSTEMCTL, "stop", "easytier"], env=ENV).returncode == 0
         try:
-            res = subprocess.run([SYSTEMCTL, "stop", "easytier"], env=ENV)
-            return res.returncode == 0
+            return await asyncio.to_thread(_run)
         except Exception:
             return False
 
     async def restart_service(self) -> bool:
+        def _run():
+            return subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV).returncode == 0
         try:
-            res = subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV)
-            return res.returncode == 0
+            return await asyncio.to_thread(_run)
         except Exception:
             return False
 
     async def toggle_autostart(self, enable: bool) -> bool:
         action = "enable" if enable else "disable"
+        def _run():
+            return subprocess.run([SYSTEMCTL, action, "easytier"], env=ENV).returncode == 0
         try:
-            res = subprocess.run([SYSTEMCTL, action, "easytier"], env=ENV)
-            return res.returncode == 0
+            return await asyncio.to_thread(_run)
         except Exception:
             return False
 
-    async def get_node_info(self) -> Dict[str, Any]:
-        """获取本机 EasyTier 节点详细信息"""
+    def _sync_get_node_info(self) -> Dict[str, Any]:
         if not os.path.exists(EASYTIER_CLI):
             return {"error": "easytier-cli not found"}
-
         try:
             res = subprocess.run([EASYTIER_CLI, "node"], capture_output=True, text=True, timeout=3, env=ENV)
             if res.returncode != 0:
@@ -163,38 +178,30 @@ class Plugin:
                 parts = [p.strip() for p in line.split("|") if p.strip()]
                 if len(parts) >= 2:
                     k, v = parts[0], parts[1]
-                    if "Virtual IP" in k:
-                        data["virtual_ip"] = v
-                    elif "Hostname" in k:
-                        data["hostname"] = v
-                    elif "Peer ID" in k:
-                        data["peer_id"] = v
-                    elif "Public IPv4" in k:
-                        data["public_ipv4"] = v
-                    elif "UDP Stun Type" in k:
-                        data["nat_type"] = v
-                    elif "Listener" in k:
-                        data["listeners"].append(v)
-
+                    if "Virtual IP" in k: data["virtual_ip"] = v
+                    elif "Hostname" in k: data["hostname"] = v
+                    elif "Peer ID" in k: data["peer_id"] = v
+                    elif "Public IPv4" in k: data["public_ipv4"] = v
+                    elif "UDP Stun Type" in k: data["nat_type"] = v
+                    elif "Listener" in k: data["listeners"].append(v)
             return data
         except Exception as e:
             return {"error": str(e)}
 
-    async def get_peers(self) -> List[Dict[str, Any]]:
-        """获取对端 Peers 节点列表"""
+    async def get_node_info(self) -> Dict[str, Any]:
+        return await asyncio.to_thread(self._sync_get_node_info)
+
+    def _sync_get_peers(self) -> List[Dict[str, Any]]:
         if not os.path.exists(EASYTIER_CLI):
             return []
-
         try:
             res = subprocess.run([EASYTIER_CLI, "peer"], capture_output=True, text=True, timeout=3, env=ENV)
             if res.returncode != 0:
                 return []
-
             peers = []
             lines = res.stdout.strip().splitlines()
             if len(lines) < 3:
                 return []
-
             for line in lines[2:]:
                 parts = [p.strip() for p in line.split("|")[1:-1]]
                 if len(parts) >= 10:
@@ -202,34 +209,24 @@ class Plugin:
                     if ipv4 == "ipv4" or "---" in ipv4:
                         continue
                     peers.append({
-                        "ipv4": ipv4,
-                        "hostname": hostname,
-                        "cost": cost,
-                        "latency": lat,
-                        "loss": loss,
-                        "rx": rx,
-                        "tx": tx,
-                        "tunnel": tunnel,
-                        "nat": nat,
-                        "version": version
+                        "ipv4": ipv4, "hostname": hostname, "cost": cost,
+                        "latency": lat, "loss": loss, "rx": rx, "tx": tx,
+                        "tunnel": tunnel, "nat": nat, "version": version
                     })
-
             return peers
         except Exception:
             return []
 
-    async def ping_target(self, target_ip: str) -> Dict[str, Any]:
-        """执行快速 ping 测试"""
+    async def get_peers(self) -> List[Dict[str, Any]]:
+        return await asyncio.to_thread(self._sync_get_peers)
+
+    def _sync_ping_target(self, target_ip: str) -> Dict[str, Any]:
         if not re.match(r"^(\d{1,3}\.){3}\d{1,3}$", target_ip):
             return {"success": False, "error": "Invalid IP format"}
-
         try:
             res = subprocess.run(
                 ["ping", "-c", "3", "-W", "2", target_ip],
-                capture_output=True,
-                text=True,
-                timeout=5,
-                env=ENV
+                capture_output=True, text=True, timeout=5, env=ENV
             )
             out = res.stdout
             if res.returncode == 0:
@@ -241,22 +238,30 @@ class Plugin:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    async def get_config(self) -> str:
+    async def ping_target(self, target_ip: str) -> Dict[str, Any]:
+        return await asyncio.to_thread(self._sync_ping_target, target_ip)
+
+    def _sync_get_config(self) -> str:
         if os.path.exists(CONFIG_PATH):
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
                 return f.read()
         return ""
 
-    async def save_config(self, content: str) -> bool:
+    async def get_config(self) -> str:
+        return await asyncio.to_thread(self._sync_get_config)
+
+    def _sync_save_config(self, content: str) -> bool:
         try:
             os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
             with open(CONFIG_PATH, "w", encoding="utf-8") as f:
                 f.write(content)
-            # 重启服务使配置生效
             subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV)
             return True
         except Exception:
             return False
+
+    async def save_config(self, content: str) -> bool:
+        return await asyncio.to_thread(self._sync_save_config, content)
 
     async def get_quick_config(self) -> Dict[str, Any]:
         """解析并返回结构化核心配置"""
