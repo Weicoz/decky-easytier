@@ -695,7 +695,7 @@ const Content: FC = () => {
 
 export default definePlugin(() => {
   return {
-    name: "Decky EasyTier",
+    name: "decky-easytier",
     titleView: <div className={staticClasses.Title}>EasyTier 管理器</div>,
     content: <Content />,
     icon: <FaNetworkWired />,

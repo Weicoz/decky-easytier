@@ -30,9 +30,9 @@
 1. 确保 Steam Deck 上已放置 EasyTier 核心组件：
    - 二进制：`/home/deck/.local/bin/easytier-core` 与 `easytier-cli`
    - 配置文件：`/home/deck/.config/easytier/config.toml`
-2. 将本插件克隆或解压至 `/home/deck/homebrew/plugins/Decky EasyTier`：
+2. 将本插件克隆或解压至 `/home/deck/homebrew/plugins/decky-easytier`：
    ```bash
-   git clone https://github.com/Weicoz/decky-easytier.git "/home/deck/homebrew/plugins/Decky EasyTier"
+   git clone https://github.com/Weicoz/decky-easytier.git /home/deck/homebrew/plugins/decky-easytier
    ```
 3. 在 Steam 游戏模式右侧菜单（`...`）的 Decky 插件列表中即可看到 **Decky EasyTier**。
 
