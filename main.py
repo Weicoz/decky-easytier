@@ -379,20 +379,56 @@ class Plugin:
             return False
 
     async def get_web_info(self) -> Dict[str, Any]:
-        """获取 WebUI 服务信息与本机局域网 IP"""
-        local_ips = ["127.0.0.1"]
+        """获取 WebUI 服务信息与智能分类局域网 IP"""
+        wifi_ips = []
+        tun_ips = []
+        other_ips = []
+
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            lan_ip = s.getsockname()[0]
-            s.close()
-            if lan_ip and lan_ip not in local_ips:
-                local_ips.append(lan_ip)
+            res = subprocess.run(["/usr/bin/ip", "-4", "-o", "addr", "show"], capture_output=True, text=True, env=ENV)
+            if res.returncode == 0:
+                for line in res.stdout.splitlines():
+                    parts = line.strip().split()
+                    if len(parts) >= 4:
+                        iface = parts[1]
+                        ip = parts[3].split("/")[0]
+                        if ip.startswith("127.") or ip.startswith("198.18."):
+                            continue
+                        if iface.startswith(("wlan", "eth", "enp", "wlp")):
+                            wifi_ips.append(ip)
+                        elif iface.startswith(("tun", "easytier")):
+                            tun_ips.append(ip)
+                        else:
+                            other_ips.append(ip)
         except Exception:
             pass
+
+        if not wifi_ips:
+            try:
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("1.1.1.1", 80))
+                sock_ip = s.getsockname()[0]
+                s.close()
+                if sock_ip and not sock_ip.startswith("127.") and not sock_ip.startswith("198.18."):
+                    wifi_ips.append(sock_ip)
+            except Exception:
+                pass
+
+        primary_lan = wifi_ips[0] if wifi_ips else (other_ips[0] if other_ips else "")
+        easytier_ip = tun_ips[0] if tun_ips else ""
+
+        all_urls = [f"http://127.0.0.1:{WEB_PORT}"]
+        if primary_lan:
+            all_urls.append(f"http://{primary_lan}:{WEB_PORT}")
+        if easytier_ip:
+            all_urls.append(f"http://{easytier_ip}:{WEB_PORT}")
 
         return {
             "port": WEB_PORT,
             "url_local": f"http://127.0.0.1:{WEB_PORT}",
-            "urls": [f"http://{ip}:{WEB_PORT}" for ip in local_ips]
+            "primary_lan": primary_lan,
+            "url_lan": f"http://{primary_lan}:{WEB_PORT}" if primary_lan else "",
+            "easytier_ip": easytier_ip,
+            "url_easytier": f"http://{easytier_ip}:{WEB_PORT}" if easytier_ip else "",
+            "urls": all_urls
         }

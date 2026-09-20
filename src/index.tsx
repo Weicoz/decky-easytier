@@ -61,6 +61,10 @@ interface QuickConfig {
 interface WebInfo {
   port: number;
   url_local: string;
+  primary_lan?: string;
+  url_lan?: string;
+  easytier_ip?: string;
+  url_easytier?: string;
   urls: string[];
 }
 
@@ -603,23 +607,32 @@ const Content: FC = () => {
       <PanelSection title="远程与移动端管理">
         <PanelSectionRow>
           <Field
-            label="本机访问"
+            label="本机访问 (Steam Deck)"
             description={webInfo?.url_local || "http://127.0.0.1:21010"}
           />
         </PanelSectionRow>
 
-        {webInfo?.urls && webInfo.urls.length > 1 && (
+        {webInfo?.url_lan && (
           <PanelSectionRow>
             <Field
-              label="局域网 / 手机访问"
-              description={webInfo.urls[1]}
+              label="📱 局域网 Wi-Fi 访问 (推荐手机/PC)"
+              description={webInfo.url_lan}
+            />
+          </PanelSectionRow>
+        )}
+
+        {webInfo?.url_easytier && (
+          <PanelSectionRow>
+            <Field
+              label="🌐 EasyTier 异地组网内访问"
+              description={webInfo.url_easytier}
             />
           </PanelSectionRow>
         )}
 
         <PanelSectionRow>
           <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }}>
-            提示：只要在同一个 Wi-Fi 下，手机或电脑浏览器直接输入上述局域网地址，即可免除手柄输入、用键鼠管理组网！
+            提示：只要手机或电脑连接同一个 Wi-Fi，在浏览器中输入上述「局域网 Wi-Fi 访问」地址，即可免除手柄输入、用键盘鼠标惬意管理组网与配置！
           </div>
         </PanelSectionRow>
       </PanelSection>

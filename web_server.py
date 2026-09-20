@@ -81,6 +81,12 @@ WEB_HTML = """<!DOCTYPE html>
     <a href="https://config-server.easytier.cn" target="_blank" class="nav-link cloud">☁️ 官方云端管理平台 (Web Dashboard) ↗</a>
   </div>
 
+  <div id="ip-banner" style="background: rgba(88, 166, 255, 0.08); border: 1px solid rgba(88, 166, 255, 0.25); border-radius: 8px; padding: 10px 16px; margin-bottom: 20px; font-size: 13px; color: #8b949e; display: flex; gap: 20px; flex-wrap: wrap; align-items: center;">
+    <span>📱 局域网访问: <strong id="lan-url" style="color: #58a6ff; font-family: monospace;">-</strong></span>
+    <span>🌐 异地组网访问: <strong id="easytier-url" style="color: #3fb950; font-family: monospace;">-</strong></span>
+    <span style="font-size: 12px; color: #8b949e;">(手机在同一 Wi-Fi 打开上方局域网地址即可免手柄操作)</span>
+  </div>
+
   <div class="grid">
     <!-- 本机节点状态卡片 -->
     <div class="card">
@@ -145,7 +151,10 @@ WEB_HTML = """<!DOCTYPE html>
       </div>
 
       <div class="form-group" style="margin-top: 14px;">
-        <label>对端/公共节点列表 (一行一个 URI)</label>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <label style="margin-bottom: 0;">对端/公共节点列表 (一行一个 URI)</label>
+          <button type="button" onclick="fillPublicPeers()" style="padding: 2px 8px; font-size: 11px;">➕ 追加官方公共节点</button>
+        </div>
         <textarea id="cfg-peers" style="min-height: 80px;" placeholder="tcp://public.easytier.top:11010"></textarea>
       </div>
 
@@ -206,6 +215,11 @@ WEB_HTML = """<!DOCTYPE html>
         } else {
           badge.className = "badge badge-stopped";
           badge.innerText = "● 已停止 (STOPPED)";
+        }
+
+        if (res.network) {
+          document.getElementById("lan-url").innerText = res.network.url_lan || "未连接物理 Wi-Fi";
+          document.getElementById("easytier-url").innerText = res.network.url_easytier || "未激活虚拟网";
         }
 
         if (res.node) {
@@ -355,6 +369,13 @@ WEB_HTML = """<!DOCTYPE html>
       }
     }
 
+    function fillPublicPeers() {
+      const t = document.getElementById("cfg-peers");
+      const defaults = ["tcp://public.easytier.top:11010", "tcp://39.108.52.138:11010"].join("\n");
+      t.value = t.value.trim() ? (t.value.trim() + "\n" + defaults) : defaults;
+      showToast("已追加官方公共节点");
+    }
+
     fetchData();
     loadConfig();
     setInterval(fetchData, 5000);
@@ -450,6 +471,39 @@ def get_peers():
         return peers
     except Exception:
         return []
+
+
+def get_local_ips():
+    wifi_ips = []
+    tun_ips = []
+    other_ips = []
+    try:
+        res = subprocess.run(["/usr/bin/ip", "-4", "-o", "addr", "show"], capture_output=True, text=True, env=ENV)
+        if res.returncode == 0:
+            for line in res.stdout.splitlines():
+                parts = line.strip().split()
+                if len(parts) >= 4:
+                    iface = parts[1]
+                    ip = parts[3].split("/")[0]
+                    if ip.startswith("127.") or ip.startswith("198.18."):
+                        continue
+                    if iface.startswith(("wlan", "eth", "enp", "wlp")):
+                        wifi_ips.append(ip)
+                    elif iface.startswith(("tun", "easytier")):
+                        tun_ips.append(ip)
+                    else:
+                        other_ips.append(ip)
+    except Exception:
+        pass
+
+    primary_lan = wifi_ips[0] if wifi_ips else (other_ips[0] if other_ips else "")
+    easytier_ip = tun_ips[0] if tun_ips else ""
+    return {
+        "primary_lan": primary_lan,
+        "easytier_ip": easytier_ip,
+        "url_lan": f"http://{primary_lan}:{WEB_PORT}" if primary_lan else "",
+        "url_easytier": f"http://{easytier_ip}:{WEB_PORT}" if easytier_ip else ""
+    }
 
 
 def ping_target(target_ip: str):
@@ -603,7 +657,8 @@ class WebHandler(BaseHTTPRequestHandler):
             st = get_service_status()
             node = get_node_info() if st.get("active") else {}
             peers = get_peers() if st.get("active") else []
-            self._send_json({"status": st, "node": node, "peers": peers})
+            net_info = get_local_ips()
+            self._send_json({"status": st, "node": node, "peers": peers, "network": net_info})
             return
 
         if path == "/api/config":
