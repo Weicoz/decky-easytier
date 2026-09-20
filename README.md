@@ -59,7 +59,7 @@ If you have already installed the plugin via Decky Plugin Store or archive:
 
 1. In Steam Gaming Mode, press the Quick Access button (`...`) to open Decky Loader.
 2. Select **EasyTier**.
-3. You will see a notification banner: **【🚀 EasyTier Core Setup Required】**. Simply click **【Download & Install EasyTier Core】**.
+3. You will see a notification banner: **"🚀 EasyTier Core Setup Required"**. Simply click **"Download & Install EasyTier Core"**.
 4. The plugin will automatically download the official binary, set up system permissions, and launch the service—**no Desktop Mode or terminal commands required!**
 
 ---
@@ -85,7 +85,7 @@ If you have already installed the plugin via Decky Plugin Store or archive:
 ## 🌐 Web Console Guide
 
 The plugin runs an embedded HTTP daemon listening on `http://127.0.0.1:21010` by default.
-- **Open on Device**: Tap **【Open Web Console】** inside the Decky plugin menu to launch the Steam browser.
+- **Open on Device**: Tap **"Open Web Console"** inside the Decky plugin menu to launch the Steam browser.
 - **Remote Management**: Check the **LAN URL** displayed in the plugin (e.g., `http://192.168.10.x:21010`). Open this link on your smartphone or PC connected to the same Wi-Fi network to configure network identity and peers easily.
 
 ---
