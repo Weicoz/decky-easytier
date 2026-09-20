@@ -357,19 +357,60 @@ const Content: FC = () => {
         />
       </PanelSectionRow>
       <PanelSectionRow>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", width: "100%" }}>
-          <ButtonItem layout="inline" onClick={() => handleSetLang("auto")}>
-            <FaGlobe style={{ marginRight: 4 }} /> {langPref === "auto" ? "✓ " : ""}{t("lang_auto")}
-          </ButtonItem>
-          <ButtonItem layout="inline" onClick={() => handleSetLang("en")}>
-            {langPref === "en" ? "✓ " : ""}{t("lang_en")}
-          </ButtonItem>
-          <ButtonItem layout="inline" onClick={() => handleSetLang("zh")}>
-            {langPref === "zh" ? "✓ " : ""}{t("lang_zh")}
-          </ButtonItem>
-          <ButtonItem layout="inline" onClick={() => handleSetLang("ja")}>
-            {langPref === "ja" ? "✓ " : ""}{t("lang_ja")}
-          </ButtonItem>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: "8px",
+            width: "100%",
+            boxSizing: "border-box",
+          }}
+        >
+          {[
+            { id: "auto", label: "自动 (Auto)", icon: <FaGlobe style={{ marginRight: 4 }} /> },
+            { id: "zh", label: "简体中文" },
+            { id: "en", label: "English" },
+            { id: "ja", label: "日本語" },
+          ].map((item) => {
+            const isSel = langPref === item.id;
+            return (
+              <Focusable
+                key={item.id}
+                style={{
+                  width: "100%",
+                  minWidth: 0,
+                  height: "36px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "0 6px",
+                  borderRadius: "5px",
+                  border: isSel
+                    ? "2px solid #1a9fff"
+                    : "1px solid rgba(255, 255, 255, 0.15)",
+                  background: isSel
+                    ? "rgba(26, 159, 255, 0.25)"
+                    : "rgba(255, 255, 255, 0.06)",
+                  color: isSel ? "#ffffff" : "rgba(255, 255, 255, 0.8)",
+                  fontWeight: isSel ? "bold" : "normal",
+                  fontSize: "12px",
+                  cursor: "pointer",
+                  boxSizing: "border-box",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => handleSetLang(item.id as any)}
+                onOKButton={() => handleSetLang(item.id as any)}
+              >
+                {item.icon}
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {isSel ? "✓ " : ""}{item.label}
+                </span>
+              </Focusable>
+            );
+          })}
         </div>
       </PanelSectionRow>
     </PanelSection>
@@ -463,27 +504,106 @@ const Content: FC = () => {
         </PanelSectionRow>
 
         <PanelSectionRow>
-          {!status?.active ? (
-            <ButtonItem layout="below" onClick={handleStart} disabled={actionLoading}>
-              <FaPlay style={{ marginRight: 6 }} /> {t("ctrl_start")}
-            </ButtonItem>
-          ) : (
-            <ButtonItem layout="below" onClick={handleStop} disabled={actionLoading}>
-              <FaStop style={{ marginRight: 6 }} /> {t("ctrl_stop")}
-            </ButtonItem>
-          )}
-        </PanelSectionRow>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "8px",
+              width: "100%",
+              boxSizing: "border-box",
+            }}
+          >
+            {!status?.active ? (
+              <Focusable
+                style={{
+                  width: "100%",
+                  height: "38px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "5px",
+                  background: actionLoading ? "rgba(46, 125, 50, 0.4)" : "#2e7d32",
+                  color: "#ffffff",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  cursor: actionLoading ? "not-allowed" : "pointer",
+                  boxSizing: "border-box",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => !actionLoading && handleStart()}
+                onOKButton={() => !actionLoading && handleStart()}
+              >
+                <FaPlay style={{ marginRight: 8 }} /> {t("ctrl_start")}
+              </Focusable>
+            ) : (
+              <Focusable
+                style={{
+                  width: "100%",
+                  height: "38px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "5px",
+                  background: actionLoading ? "rgba(198, 40, 40, 0.4)" : "#c62828",
+                  color: "#ffffff",
+                  fontSize: "13px",
+                  fontWeight: "bold",
+                  cursor: actionLoading ? "not-allowed" : "pointer",
+                  boxSizing: "border-box",
+                  transition: "all 0.15s ease",
+                }}
+                onClick={() => !actionLoading && handleStop()}
+                onOKButton={() => !actionLoading && handleStop()}
+              >
+                <FaStop style={{ marginRight: 8 }} /> {t("ctrl_stop")}
+              </Focusable>
+            )}
 
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={handleRestart} disabled={actionLoading}>
-            <FaRedo style={{ marginRight: 6 }} /> {t("ctrl_restart")}
-          </ButtonItem>
-        </PanelSectionRow>
+            <Focusable
+              style={{
+                width: "100%",
+                height: "36px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "5px",
+                background: actionLoading ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.08)",
+                border: "1px solid rgba(255, 255, 255, 0.15)",
+                color: actionLoading ? "rgba(255, 255, 255, 0.4)" : "#ffffff",
+                fontSize: "13px",
+                fontWeight: "500",
+                cursor: actionLoading ? "not-allowed" : "pointer",
+                boxSizing: "border-box",
+                transition: "all 0.15s ease",
+              }}
+              onClick={() => !actionLoading && handleRestart()}
+              onOKButton={() => !actionLoading && handleRestart()}
+            >
+              <FaRedo style={{ marginRight: 8 }} /> {t("ctrl_restart")}
+            </Focusable>
 
-        <PanelSectionRow>
-          <ButtonItem layout="below" onClick={loadData} disabled={actionLoading}>
-            {t("ctrl_refresh")}
-          </ButtonItem>
+            <Focusable
+              style={{
+                width: "100%",
+                height: "34px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "5px",
+                background: actionLoading ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.04)",
+                border: "1px solid rgba(255, 255, 255, 0.1)",
+                color: actionLoading ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.85)",
+                fontSize: "12px",
+                cursor: actionLoading ? "not-allowed" : "pointer",
+                boxSizing: "border-box",
+                transition: "all 0.15s ease",
+              }}
+              onClick={() => !actionLoading && loadData()}
+              onOKButton={() => !actionLoading && loadData()}
+            >
+              {t("ctrl_refresh")}
+            </Focusable>
+          </div>
         </PanelSectionRow>
       </PanelSection>
 
@@ -588,17 +708,31 @@ const Content: FC = () => {
                     )}
                   </div>
 
-                  {/* 下部：测试按钮整行居底 */}
+                  {/* 下部：测试按钮整行居底且 100% 充满卡片 */}
                   {!isLocal && rawIp && (
-                    <div style={{ marginTop: "4px", width: "100%" }}>
-                      <ButtonItem
-                        layout="below"
-                        onClick={() => handlePing(peer.ipv4)}
-                        disabled={actionLoading}
-                      >
-                        {t("peers_ping_btn")}
-                      </ButtonItem>
-                    </div>
+                    <Focusable
+                      style={{
+                        width: "100%",
+                        height: "32px",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        borderRadius: "4px",
+                        background: actionLoading ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.08)",
+                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                        color: actionLoading ? "rgba(255, 255, 255, 0.4)" : "#ffffff",
+                        fontSize: "12px",
+                        fontWeight: "500",
+                        cursor: actionLoading ? "not-allowed" : "pointer",
+                        marginTop: "6px",
+                        boxSizing: "border-box",
+                        transition: "all 0.15s ease",
+                      }}
+                      onClick={() => !actionLoading && handlePing(peer.ipv4)}
+                      onOKButton={() => !actionLoading && handlePing(peer.ipv4)}
+                    >
+                      {t("peers_ping_btn")}
+                    </Focusable>
                   )}
                 </div>
               </PanelSectionRow>
@@ -885,13 +1019,17 @@ const Content: FC = () => {
         maxWidth: "100%",
         boxSizing: "border-box",
         overflowX: "hidden",
-        padding: "0 2px 30px 2px",
+        padding: "0 0 30px 0",
       }}
     >
       <style>{`
         .decky-easytier-container * {
           box-sizing: border-box !important;
           max-width: 100% !important;
+        }
+        .decky-easytier-container button {
+          max-width: 100% !important;
+          box-sizing: border-box !important;
         }
         .decky-easytier-container pre, .decky-easytier-container code {
           white-space: pre-wrap !important;

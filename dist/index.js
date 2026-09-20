@@ -738,9 +738,110 @@ const Content = () => {
     // 语言设置模块 (置于底部，方便切换)
     const languageSection = (SP_JSX.jsxs(DFL.PanelSection, { title: t("lang_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("lang_label"), description: langPref === "auto"
                         ? `${t("lang_auto")} → ${resolvedLang.toUpperCase()}`
-                        : resolvedLang.toUpperCase() }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", width: "100%" }, children: [SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("auto"), children: [SP_JSX.jsx(FaGlobe, { style: { marginRight: 4 } }), " ", langPref === "auto" ? "✓ " : "", t("lang_auto")] }), SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("en"), children: [langPref === "en" ? "✓ " : "", t("lang_en")] }), SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("zh"), children: [langPref === "zh" ? "✓ " : "", t("lang_zh")] }), SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("ja"), children: [langPref === "ja" ? "✓ " : "", t("lang_ja")] })] }) })] }));
+                        : resolvedLang.toUpperCase() }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: {
+                        display: "grid",
+                        gridTemplateColumns: "1fr 1fr",
+                        gap: "8px",
+                        width: "100%",
+                        boxSizing: "border-box",
+                    }, children: [
+                        { id: "auto", label: "自动 (Auto)", icon: SP_JSX.jsx(FaGlobe, { style: { marginRight: 4 } }) },
+                        { id: "zh", label: "简体中文" },
+                        { id: "en", label: "English" },
+                        { id: "ja", label: "日本語" },
+                    ].map((item) => {
+                        const isSel = langPref === item.id;
+                        return (SP_JSX.jsxs(DFL.Focusable, { style: {
+                                width: "100%",
+                                minWidth: 0,
+                                height: "36px",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                padding: "0 6px",
+                                borderRadius: "5px",
+                                border: isSel
+                                    ? "2px solid #1a9fff"
+                                    : "1px solid rgba(255, 255, 255, 0.15)",
+                                background: isSel
+                                    ? "rgba(26, 159, 255, 0.25)"
+                                    : "rgba(255, 255, 255, 0.06)",
+                                color: isSel ? "#ffffff" : "rgba(255, 255, 255, 0.8)",
+                                fontWeight: isSel ? "bold" : "normal",
+                                fontSize: "12px",
+                                cursor: "pointer",
+                                boxSizing: "border-box",
+                                whiteSpace: "nowrap",
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                transition: "all 0.15s ease",
+                            }, onClick: () => handleSetLang(item.id), onOKButton: () => handleSetLang(item.id), children: [item.icon, SP_JSX.jsxs("span", { style: { overflow: "hidden", textOverflow: "ellipsis" }, children: [isSel ? "✓ " : "", item.label] })] }, item.id));
+                    }) }) })] }));
     // Tab 1: 运行状态
-    const statusContent = (SP_JSX.jsxs("div", { children: [status && !status.installed && (SP_JSX.jsxs(DFL.PanelSection, { title: t("core_install_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("core_install_not_found"), description: t("core_install_desc") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? (SP_JSX.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }, children: [SP_JSX.jsx(DFL.Spinner, {}), " ", t("core_installing")] })) : (t("core_install_btn")) }) })] })), SP_JSX.jsxs(DFL.PanelSection, { title: t("status_title"), children: [status?.core_installed && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_core_ver"), description: status.core_version ? `v${status.core_version}` : t("core_ready") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? t("core_updating") : t("core_reinstall") }) })] })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_service"), description: status?.active ? t("status_running") : t("status_stopped"), children: SP_JSX.jsx("span", { style: { color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }, children: status?.active ? "● ACTIVE" : "● STOPPED" }) }) }), status?.active && nodeInfo && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_vip"), description: nodeInfo.virtual_ip || t("status_fetching") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_hostname"), description: nodeInfo.hostname || "steamdeck" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_nat"), description: nodeInfo.nat_type || t("status_unknown") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_peer_id"), description: nodeInfo.peer_id || "-" }) })] }))] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("ctrl_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("ctrl_autostart"), description: t("ctrl_autostart_desc"), checked: status?.enabled ?? false, onChange: handleToggleEnable, disabled: actionLoading }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: !status?.active ? (SP_JSX.jsxs(DFL.ButtonItem, { layout: "below", onClick: handleStart, disabled: actionLoading, children: [SP_JSX.jsx(FaPlay, { style: { marginRight: 6 } }), " ", t("ctrl_start")] })) : (SP_JSX.jsxs(DFL.ButtonItem, { layout: "below", onClick: handleStop, disabled: actionLoading, children: [SP_JSX.jsx(FaStop, { style: { marginRight: 6 } }), " ", t("ctrl_stop")] })) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs(DFL.ButtonItem, { layout: "below", onClick: handleRestart, disabled: actionLoading, children: [SP_JSX.jsx(FaRedo, { style: { marginRight: 6 } }), " ", t("ctrl_restart")] }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: loadData, disabled: actionLoading, children: t("ctrl_refresh") }) })] }), SP_JSX.jsx(DFL.PanelSection, { title: `${t("peers_title")} (${peers.length})`, children: peers.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("peers_none"), description: status?.active ? t("peers_none_desc_active") : t("peers_none_desc_stopped") }) })) : (peers.map((peer, idx) => {
+    const statusContent = (SP_JSX.jsxs("div", { children: [status && !status.installed && (SP_JSX.jsxs(DFL.PanelSection, { title: t("core_install_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("core_install_not_found"), description: t("core_install_desc") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? (SP_JSX.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }, children: [SP_JSX.jsx(DFL.Spinner, {}), " ", t("core_installing")] })) : (t("core_install_btn")) }) })] })), SP_JSX.jsxs(DFL.PanelSection, { title: t("status_title"), children: [status?.core_installed && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_core_ver"), description: status.core_version ? `v${status.core_version}` : t("core_ready") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? t("core_updating") : t("core_reinstall") }) })] })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_service"), description: status?.active ? t("status_running") : t("status_stopped"), children: SP_JSX.jsx("span", { style: { color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }, children: status?.active ? "● ACTIVE" : "● STOPPED" }) }) }), status?.active && nodeInfo && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_vip"), description: nodeInfo.virtual_ip || t("status_fetching") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_hostname"), description: nodeInfo.hostname || "steamdeck" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_nat"), description: nodeInfo.nat_type || t("status_unknown") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_peer_id"), description: nodeInfo.peer_id || "-" }) })] }))] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("ctrl_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("ctrl_autostart"), description: t("ctrl_autostart_desc"), checked: status?.enabled ?? false, onChange: handleToggleEnable, disabled: actionLoading }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: {
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "8px",
+                                width: "100%",
+                                boxSizing: "border-box",
+                            }, children: [!status?.active ? (SP_JSX.jsxs(DFL.Focusable, { style: {
+                                        width: "100%",
+                                        height: "38px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "5px",
+                                        background: actionLoading ? "rgba(46, 125, 50, 0.4)" : "#2e7d32",
+                                        color: "#ffffff",
+                                        fontSize: "13px",
+                                        fontWeight: "bold",
+                                        cursor: actionLoading ? "not-allowed" : "pointer",
+                                        boxSizing: "border-box",
+                                        transition: "all 0.15s ease",
+                                    }, onClick: () => !actionLoading && handleStart(), onOKButton: () => !actionLoading && handleStart(), children: [SP_JSX.jsx(FaPlay, { style: { marginRight: 8 } }), " ", t("ctrl_start")] })) : (SP_JSX.jsxs(DFL.Focusable, { style: {
+                                        width: "100%",
+                                        height: "38px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "5px",
+                                        background: actionLoading ? "rgba(198, 40, 40, 0.4)" : "#c62828",
+                                        color: "#ffffff",
+                                        fontSize: "13px",
+                                        fontWeight: "bold",
+                                        cursor: actionLoading ? "not-allowed" : "pointer",
+                                        boxSizing: "border-box",
+                                        transition: "all 0.15s ease",
+                                    }, onClick: () => !actionLoading && handleStop(), onOKButton: () => !actionLoading && handleStop(), children: [SP_JSX.jsx(FaStop, { style: { marginRight: 8 } }), " ", t("ctrl_stop")] })), SP_JSX.jsxs(DFL.Focusable, { style: {
+                                        width: "100%",
+                                        height: "36px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "5px",
+                                        background: actionLoading ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.08)",
+                                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                                        color: actionLoading ? "rgba(255, 255, 255, 0.4)" : "#ffffff",
+                                        fontSize: "13px",
+                                        fontWeight: "500",
+                                        cursor: actionLoading ? "not-allowed" : "pointer",
+                                        boxSizing: "border-box",
+                                        transition: "all 0.15s ease",
+                                    }, onClick: () => !actionLoading && handleRestart(), onOKButton: () => !actionLoading && handleRestart(), children: [SP_JSX.jsx(FaRedo, { style: { marginRight: 8 } }), " ", t("ctrl_restart")] }), SP_JSX.jsx(DFL.Focusable, { style: {
+                                        width: "100%",
+                                        height: "34px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "5px",
+                                        background: actionLoading ? "rgba(255, 255, 255, 0.02)" : "rgba(255, 255, 255, 0.04)",
+                                        border: "1px solid rgba(255, 255, 255, 0.1)",
+                                        color: actionLoading ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.85)",
+                                        fontSize: "12px",
+                                        cursor: actionLoading ? "not-allowed" : "pointer",
+                                        boxSizing: "border-box",
+                                        transition: "all 0.15s ease",
+                                    }, onClick: () => !actionLoading && loadData(), onOKButton: () => !actionLoading && loadData(), children: t("ctrl_refresh") })] }) })] }), SP_JSX.jsx(DFL.PanelSection, { title: `${t("peers_title")} (${peers.length})`, children: peers.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("peers_none"), description: status?.active ? t("peers_none_desc_active") : t("peers_none_desc_stopped") }) })) : (peers.map((peer, idx) => {
                     const isLocal = peer.cost.toLowerCase() === "local";
                     const isP2P = peer.cost.toLowerCase().includes("p2p");
                     const rawIp = peer.ipv4.split("/")[0].trim();
@@ -790,7 +891,23 @@ const Content = () => {
                                         flexDirection: "column",
                                         gap: "3px",
                                         wordBreak: "break-all",
-                                    }, children: [SP_JSX.jsxs("div", { children: ["IP: ", SP_JSX.jsx("span", { style: { fontFamily: "monospace", color: "#66c0f4" }, children: peer.ipv4 })] }), SP_JSX.jsxs("div", { style: { display: "flex", gap: "8px", color: "#8b949e", fontSize: "11px" }, children: [SP_JSX.jsxs("span", { children: [t("peers_lat"), ": ", peer.latency || "-"] }), SP_JSX.jsxs("span", { children: [t("peers_loss"), ": ", peer.loss || "0%"] })] }), SP_JSX.jsxs("div", { style: { fontSize: "10px", color: "#8b949e" }, children: [t("peers_traffic"), ": ", traffic] }), pingText && (SP_JSX.jsxs("div", { style: { fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginTop: "2px" }, children: ["Ping: ", pingText] }))] }), !isLocal && rawIp && (SP_JSX.jsx("div", { style: { marginTop: "4px", width: "100%" }, children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: () => handlePing(peer.ipv4), disabled: actionLoading, children: t("peers_ping_btn") }) }))] }) }, idx));
+                                    }, children: [SP_JSX.jsxs("div", { children: ["IP: ", SP_JSX.jsx("span", { style: { fontFamily: "monospace", color: "#66c0f4" }, children: peer.ipv4 })] }), SP_JSX.jsxs("div", { style: { display: "flex", gap: "8px", color: "#8b949e", fontSize: "11px" }, children: [SP_JSX.jsxs("span", { children: [t("peers_lat"), ": ", peer.latency || "-"] }), SP_JSX.jsxs("span", { children: [t("peers_loss"), ": ", peer.loss || "0%"] })] }), SP_JSX.jsxs("div", { style: { fontSize: "10px", color: "#8b949e" }, children: [t("peers_traffic"), ": ", traffic] }), pingText && (SP_JSX.jsxs("div", { style: { fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginTop: "2px" }, children: ["Ping: ", pingText] }))] }), !isLocal && rawIp && (SP_JSX.jsx(DFL.Focusable, { style: {
+                                        width: "100%",
+                                        height: "32px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        borderRadius: "4px",
+                                        background: actionLoading ? "rgba(255, 255, 255, 0.04)" : "rgba(255, 255, 255, 0.08)",
+                                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                                        color: actionLoading ? "rgba(255, 255, 255, 0.4)" : "#ffffff",
+                                        fontSize: "12px",
+                                        fontWeight: "500",
+                                        cursor: actionLoading ? "not-allowed" : "pointer",
+                                        marginTop: "6px",
+                                        boxSizing: "border-box",
+                                        transition: "all 0.15s ease",
+                                    }, onClick: () => !actionLoading && handlePing(peer.ipv4), onOKButton: () => !actionLoading && handlePing(peer.ipv4), children: t("peers_ping_btn") }))] }) }, idx));
                 })) }), languageSection] }));
     // Tab 2: 网络配置
     const configContent = (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs(DFL.PanelSection, { title: t("cfg_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_net_name"), description: t("cfg_net_name_desc"), value: netName, onChange: (e) => setNetName(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_net_secret"), description: t("cfg_net_secret_desc"), value: netSecret, bIsPassword: !showSecret, onChange: (e) => setNetSecret(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("cfg_show_secret"), checked: showSecret, onChange: setShowSecret }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_vip"), description: t("cfg_vip_desc"), value: ipv4, onChange: (e) => setIpv4(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_hostname"), description: t("cfg_hostname_desc"), value: hostname, onChange: (e) => setHostname(e.target.value) }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("opt_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_udp"), description: t("opt_udp_desc"), checked: udpRelay, onChange: setUdpRelay }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_latency"), description: t("opt_latency_desc"), checked: latencyFirst, onChange: setLatencyFirst }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_smoltcp"), description: t("opt_smoltcp_desc"), checked: useSmoltcp, onChange: setUseSmoltcp }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_exit"), description: t("opt_exit_desc"), checked: enableExitNode, onChange: setEnableExitNode }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("peer_cfg_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { width: "100%" }, children: [SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", marginBottom: "6px" }, children: t("peer_cfg_hint") }), SP_JSX.jsx("textarea", { style: {
@@ -853,11 +970,15 @@ const Content = () => {
             maxWidth: "100%",
             boxSizing: "border-box",
             overflowX: "hidden",
-            padding: "0 2px 30px 2px",
+            padding: "0 0 30px 0",
         }, children: [SP_JSX.jsx("style", { children: `
         .decky-easytier-container * {
           box-sizing: border-box !important;
           max-width: 100% !important;
+        }
+        .decky-easytier-container button {
+          max-width: 100% !important;
+          box-sizing: border-box !important;
         }
         .decky-easytier-container pre, .decky-easytier-container code {
           white-space: pre-wrap !important;
