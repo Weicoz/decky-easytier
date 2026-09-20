@@ -644,6 +644,9 @@ class WebHandler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.end_headers()
 
+    def do_HEAD(self):
+        self.do_GET()
+
     def do_GET(self):
         path = urlparse(self.path).path
         if path in ["/", "/index.html"]:
