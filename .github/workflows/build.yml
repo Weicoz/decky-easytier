@@ -34,7 +34,7 @@ jobs:
       - name: Package plugin
         run: |
           mkdir -p build/decky-easytier
-          cp -r dist main.py plugin.json README.md LICENSE build/decky-easytier/
+          cp -r dist main.py web_server.py plugin.json README.md LICENSE build/decky-easytier/
           cd build
           zip -r ../decky-easytier.zip decky-easytier
 

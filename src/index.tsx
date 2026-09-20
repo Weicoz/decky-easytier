@@ -4,6 +4,8 @@ import {
   PanelSectionRow,
   ToggleField,
   Field,
+  TextField,
+  Tabs,
   staticClasses,
   Spinner,
 } from "@decky/ui";
@@ -41,6 +43,20 @@ interface PeerInfo {
   version: string;
 }
 
+interface QuickConfig {
+  network_name: string;
+  network_secret: string;
+  hostname: string;
+  ipv4: string;
+  peers: string[];
+}
+
+interface WebInfo {
+  port: number;
+  url_local: string;
+  urls: string[];
+}
+
 // 后端 API 声明
 const getServiceStatus = callable<[], ServiceStatus>("get_service_status");
 const startService = callable<[], boolean>("start_service");
@@ -50,14 +66,33 @@ const toggleAutostart = callable<[enable: boolean], boolean>("toggle_autostart")
 const getNodeInfo = callable<[], NodeInfo>("get_node_info");
 const getPeers = callable<[], PeerInfo[]>("get_peers");
 const pingTarget = callable<[target_ip: string], { success: boolean; avg_ms?: string; error?: string }>("ping_target");
+const getQuickConfig = callable<[], QuickConfig>("get_quick_config");
+const saveQuickConfig = callable<[cfg: QuickConfig], boolean>("save_quick_config");
+const getConfig = callable<[], string>("get_config");
+const saveConfig = callable<[content: string], boolean>("save_config");
+const openWebUi = callable<[], boolean>("open_web_ui");
+const getWebInfo = callable<[], WebInfo>("get_web_info");
 
 const Content: FC = () => {
+  const [activeTab, setActiveTab] = useState<string>("status");
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<ServiceStatus | null>(null);
   const [nodeInfo, setNodeInfo] = useState<NodeInfo | null>(null);
   const [peers, setPeers] = useState<PeerInfo[]>([]);
   const [pingResults, setPingResults] = useState<Record<string, string>>({});
   const [actionLoading, setActionLoading] = useState<boolean>(false);
+
+  // 配置表单状态
+  const [netName, setNetName] = useState<string>("");
+  const [netSecret, setNetSecret] = useState<string>("");
+  const [hostname, setHostname] = useState<string>("steamdeck");
+  const [ipv4, setIpv4] = useState<string>("");
+  const [showSecret, setShowSecret] = useState<boolean>(false);
+  const [rawToml, setRawToml] = useState<string>("");
+  const [showRawToml, setShowRawToml] = useState<boolean>(false);
+
+  // Web 管理信息
+  const [webInfo, setWebInfo] = useState<WebInfo | null>(null);
 
   const loadData = async () => {
     try {
@@ -72,14 +107,40 @@ const Content: FC = () => {
         setPeers([]);
       }
     } catch (e) {
-      console.error("[EasyTier] Failed to fetch data:", e);
+      console.error("[EasyTier] Failed to fetch status:", e);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadConfigData = async () => {
+    try {
+      const [qc, raw] = await Promise.all([getQuickConfig(), getConfig()]);
+      if (qc) {
+        setNetName(qc.network_name || "");
+        setNetSecret(qc.network_secret || "");
+        setHostname(qc.hostname || "steamdeck");
+        setIpv4(qc.ipv4 || "");
+      }
+      setRawToml(raw || "");
+    } catch (e) {
+      console.error("[EasyTier] Failed to fetch config:", e);
+    }
+  };
+
+  const loadWebInfo = async () => {
+    try {
+      const info = await getWebInfo();
+      setWebInfo(info);
+    } catch (e) {
+      console.error("[EasyTier] Failed to fetch web info:", e);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadConfigData();
+    loadWebInfo();
     const interval = setInterval(loadData, 5000);
     return () => clearInterval(interval);
   }, []);
@@ -140,6 +201,51 @@ const Content: FC = () => {
     }
   };
 
+  const handleSaveQuickConfig = async () => {
+    if (!netName.trim()) {
+      toaster.toast({ title: "EasyTier", body: "请填写网络名称" });
+      return;
+    }
+    setActionLoading(true);
+    const ok = await saveQuickConfig({
+      network_name: netName.trim(),
+      network_secret: netSecret.trim(),
+      hostname: hostname.trim() || "steamdeck",
+      ipv4: ipv4.trim(),
+      peers: ["tcp://public.easytier.top:11010", "tcp://39.108.52.138:11010"],
+    });
+    if (ok) {
+      toaster.toast({ title: "EasyTier", body: "配置已保存并重载" });
+      await loadConfigData();
+      await loadData();
+    } else {
+      toaster.toast({ title: "EasyTier", body: "配置保存失败" });
+    }
+    setActionLoading(false);
+  };
+
+  const handleSaveRawToml = async () => {
+    setActionLoading(true);
+    const ok = await saveConfig(rawToml);
+    if (ok) {
+      toaster.toast({ title: "EasyTier", body: "原始配置已保存" });
+      await loadConfigData();
+      await loadData();
+    } else {
+      toaster.toast({ title: "EasyTier", body: "保存失败" });
+    }
+    setActionLoading(false);
+  };
+
+  const handleOpenWebUi = async () => {
+    const ok = await openWebUi();
+    if (ok) {
+      toaster.toast({ title: "EasyTier", body: "正在打开 Web 控制台..." });
+    } else {
+      toaster.toast({ title: "EasyTier", body: `请在浏览器访问 http://127.0.0.1:${webInfo?.port || 21010}` });
+    }
+  };
+
   if (loading && !status) {
     return (
       <PanelSection>
@@ -150,15 +256,12 @@ const Content: FC = () => {
     );
   }
 
-  return (
+  // Tab 1: 运行状态
+  const statusContent = (
     <div>
-      {/* 节点运行状态 */}
       <PanelSection title="运行状态">
         <PanelSectionRow>
-          <Field
-            label="服务状态"
-            description={status?.active ? "正在运行中" : "已停止"}
-          >
+          <Field label="服务状态" description={status?.active ? "正在运行中" : "已停止"}>
             <span style={{ color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }}>
               {status?.active ? "● ACTIVE" : "● STOPPED"}
             </span>
@@ -174,7 +277,7 @@ const Content: FC = () => {
               <Field label="主机名" description={nodeInfo.hostname || "steamdeck"} />
             </PanelSectionRow>
             <PanelSectionRow>
-              <Field label="NAT 类型" description={nodeInfo.nat_type || "未知"} />
+              <Field label="NAT 打洞类型" description={nodeInfo.nat_type || "未知"} />
             </PanelSectionRow>
             <PanelSectionRow>
               <Field label="Peer ID" description={nodeInfo.peer_id || "-"} />
@@ -183,7 +286,6 @@ const Content: FC = () => {
         )}
       </PanelSection>
 
-      {/* 服务操作 */}
       <PanelSection title="服务控制">
         <PanelSectionRow>
           <ToggleField
@@ -199,29 +301,17 @@ const Content: FC = () => {
           <div style={{ display: "flex", gap: "8px", width: "100%" }}>
             <div style={{ flex: 1 }}>
               {!status?.active ? (
-                <ButtonItem
-                  layout="inline"
-                  onClick={handleStart}
-                  disabled={actionLoading}
-                >
+                <ButtonItem layout="inline" onClick={handleStart} disabled={actionLoading}>
                   <FaPlay style={{ marginRight: 6 }} /> 启动
                 </ButtonItem>
               ) : (
-                <ButtonItem
-                  layout="inline"
-                  onClick={handleStop}
-                  disabled={actionLoading}
-                >
+                <ButtonItem layout="inline" onClick={handleStop} disabled={actionLoading}>
                   <FaStop style={{ marginRight: 6 }} /> 停止
                 </ButtonItem>
               )}
             </div>
             <div style={{ flex: 1 }}>
-              <ButtonItem
-                layout="inline"
-                onClick={handleRestart}
-                disabled={actionLoading}
-              >
+              <ButtonItem layout="inline" onClick={handleRestart} disabled={actionLoading}>
                 <FaRedo style={{ marginRight: 6 }} /> 重启
               </ButtonItem>
             </div>
@@ -235,7 +325,6 @@ const Content: FC = () => {
         </PanelSectionRow>
       </PanelSection>
 
-      {/* 组网节点列表 */}
       <PanelSection title={`组网 Peers (${peers.length})`}>
         {peers.length === 0 ? (
           <PanelSectionRow>
@@ -274,11 +363,7 @@ const Content: FC = () => {
                   }
                 >
                   {!isLocal && rawIp && (
-                    <ButtonItem
-                      layout="inline"
-                      onClick={() => handlePing(peer.ipv4)}
-                      disabled={actionLoading}
-                    >
+                    <ButtonItem layout="inline" onClick={() => handlePing(peer.ipv4)} disabled={actionLoading}>
                       测速
                     </ButtonItem>
                   )}
@@ -288,6 +373,172 @@ const Content: FC = () => {
           })
         )}
       </PanelSection>
+    </div>
+  );
+
+  // Tab 2: 网络配置
+  const configContent = (
+    <div>
+      <PanelSection title="快捷组网配置">
+        <PanelSectionRow>
+          <TextField
+            label="网络名称 (Network Name)"
+            description="加入或创建的异地组网名称"
+            value={netName}
+            onChange={(e) => setNetName(e.target.value)}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <TextField
+            label="网络密码 (Network Secret)"
+            description="用于组网节点间通信认证与加密"
+            value={netSecret}
+            bIsPassword={!showSecret}
+            onChange={(e) => setNetSecret(e.target.value)}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ToggleField
+            label="显示密码"
+            checked={showSecret}
+            onChange={setShowSecret}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <TextField
+            label="虚拟 IPv4 (可选)"
+            description="如 10.144.144.202/24，留空则由网络自动分配"
+            value={ipv4}
+            onChange={(e) => setIpv4(e.target.value)}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <TextField
+            label="主机名称 (Hostname)"
+            description="在组网 Peers 中展示的设备名"
+            value={hostname}
+            onChange={(e) => setHostname(e.target.value)}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={handleSaveQuickConfig} disabled={actionLoading}>
+            💾 保存配置并应用重启
+          </ButtonItem>
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title="高级配置">
+        <PanelSectionRow>
+          <ToggleField
+            label="编辑原始 config.toml"
+            description="展开直接查看与编辑完整的 TOML 文件"
+            checked={showRawToml}
+            onChange={setShowRawToml}
+          />
+        </PanelSectionRow>
+
+        {showRawToml && (
+          <>
+            <PanelSectionRow>
+              <textarea
+                style={{
+                  width: "100%",
+                  height: "160px",
+                  background: "#0e141b",
+                  color: "#dcdedf",
+                  border: "1px solid rgba(255,255,255,0.2)",
+                  borderRadius: "4px",
+                  padding: "8px",
+                  fontFamily: "monospace",
+                  fontSize: "12px",
+                }}
+                value={rawToml}
+                onChange={(e) => setRawToml(e.target.value)}
+              />
+            </PanelSectionRow>
+            <PanelSectionRow>
+              <ButtonItem layout="below" onClick={handleSaveRawToml} disabled={actionLoading}>
+                保存原始 TOML 配置
+              </ButtonItem>
+            </PanelSectionRow>
+          </>
+        )}
+      </PanelSection>
+    </div>
+  );
+
+  // Tab 3: Web 端管理
+  const webContent = (
+    <div>
+      <PanelSection title="内置 Web 控制台">
+        <PanelSectionRow>
+          <Field
+            label="Web 管理服务"
+            description={`运行状态: 正在监听端口 ${webInfo?.port || 21010}`}
+          >
+            <span style={{ color: "#4caf50", fontWeight: "bold" }}>● RUNNING</span>
+          </Field>
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={handleOpenWebUi}>
+            🚀 在 Steam 浏览器中打开 Web 仪表盘
+          </ButtonItem>
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title="远程与移动端管理">
+        <PanelSectionRow>
+          <Field
+            label="本机访问"
+            description={webInfo?.url_local || "http://127.0.0.1:21010"}
+          />
+        </PanelSectionRow>
+
+        {webInfo?.urls && webInfo.urls.length > 1 && (
+          <PanelSectionRow>
+            <Field
+              label="局域网 / 手机访问"
+              description={webInfo.urls[1]}
+            />
+          </PanelSectionRow>
+        )}
+
+        <PanelSectionRow>
+          <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }}>
+            提示：只要在同一个局域网（Wi-Fi）下，手机或电脑浏览器直接输入上述局域网地址，即可无需手柄、用键盘鼠标惬意管理组网与配置！
+          </div>
+        </PanelSectionRow>
+      </PanelSection>
+    </div>
+  );
+
+  const tabs = [
+    {
+      id: "status",
+      title: "状态",
+      content: statusContent,
+    },
+    {
+      id: "config",
+      title: "配置",
+      content: configContent,
+    },
+    {
+      id: "web",
+      title: "WebUI",
+      content: webContent,
+    },
+  ];
+
+  return (
+    <div>
+      <Tabs tabs={tabs} activeTab={activeTab} onShowTab={setActiveTab} />
     </div>
   );
 };

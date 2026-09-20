@@ -1,6 +1,7 @@
 import asyncio
 import os
 import re
+import socket
 import subprocess
 from typing import Any, Dict, List, Optional
 
@@ -10,29 +11,69 @@ except ImportError:
     class DeckyMock:
         logger = None
         DECKY_USER_HOME = "/home/deck"
-        DECKY_PLUGIN_DIR = "/home/deck/homebrew/plugins/Decky EasyTier"
+        DECKY_PLUGIN_DIR = "/home/deck/homebrew/plugins/decky-easytier"
     decky = DeckyMock()
 
 
 EASYTIER_CORE = "/home/deck/.local/bin/easytier-core"
 EASYTIER_CLI = "/home/deck/.local/bin/easytier-cli"
 CONFIG_PATH = "/home/deck/.config/easytier/config.toml"
-
+WEB_PORT = 21010
 
 SYSTEMCTL = "/usr/bin/systemctl"
 PGREP = "/usr/bin/pgrep"
+PYTHON3 = "/usr/bin/python3"
 ENV = dict(os.environ, PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
 
 
 class Plugin:
+    def __init__(self):
+        self.web_process: Optional[subprocess.Popen] = None
+
     async def _main(self):
-        # 确保权限
+        # 确保二进制执行权限
         if os.path.exists(EASYTIER_CORE):
             os.system(f"chmod 4755 {EASYTIER_CORE} 2>/dev/null")
             os.system(f"setcap cap_net_admin,cap_net_bind_service+ep {EASYTIER_CORE} 2>/dev/null")
 
+        # 启动独立的 Web Dashboard 进程 (通过系统原生 Python3)
+        self._start_web_server()
+
     async def _unload(self):
-        pass
+        self._stop_web_server()
+
+    def _start_web_server(self):
+        try:
+            # 查找 web_server.py 路径
+            web_script = os.path.join(decky.DECKY_PLUGIN_DIR, "web_server.py")
+            if not os.path.exists(web_script):
+                web_script = "/home/deck/homebrew/plugins/decky-easytier/web_server.py"
+
+            if os.path.exists(web_script):
+                # 检查是否已有运行中的实例，避免重复启动
+                res = subprocess.run([PGREP, "-f", "web_server.py"], capture_output=True, env=ENV)
+                if res.returncode != 0:
+                    self.web_process = subprocess.Popen(
+                        [PYTHON3, web_script],
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL,
+                        env=ENV
+                    )
+        except Exception:
+            pass
+
+    def _stop_web_server(self):
+        if self.web_process:
+            try:
+                self.web_process.terminate()
+            except Exception:
+                pass
+            self.web_process = None
+        # 确保彻底停止
+        try:
+            subprocess.run(["pkill", "-f", "web_server.py"], env=ENV)
+        except Exception:
+            pass
 
     async def get_service_status(self) -> Dict[str, Any]:
         """获取 systemd 服务与进程状态"""
@@ -154,12 +195,10 @@ class Plugin:
             if len(lines) < 3:
                 return []
 
-            # 表头及分隔线略过
             for line in lines[2:]:
                 parts = [p.strip() for p in line.split("|")[1:-1]]
                 if len(parts) >= 10:
                     ipv4, hostname, cost, lat, loss, rx, tx, tunnel, nat, version = parts[:10]
-                    # 过滤掉表头行或纯分隔行
                     if ipv4 == "ipv4" or "---" in ipv4:
                         continue
                     peers.append({
@@ -181,7 +220,6 @@ class Plugin:
 
     async def ping_target(self, target_ip: str) -> Dict[str, Any]:
         """执行快速 ping 测试"""
-        # 安全校验 IPv4 地址格式
         if not re.match(r"^(\d{1,3}\.){3}\d{1,3}$", target_ip):
             return {"success": False, "error": "Invalid IP format"}
 
@@ -215,7 +253,118 @@ class Plugin:
             with open(CONFIG_PATH, "w", encoding="utf-8") as f:
                 f.write(content)
             # 重启服务使配置生效
-            subprocess.run(["systemctl", "restart", "easytier"])
+            subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV)
             return True
         except Exception:
             return False
+
+    async def get_quick_config(self) -> Dict[str, Any]:
+        """解析并返回结构化核心配置"""
+        content = await self.get_config()
+        data = {
+            "network_name": "",
+            "network_secret": "",
+            "hostname": "steamdeck",
+            "ipv4": "",
+            "peers": []
+        }
+
+        m_name = re.search(r'^\s*network_name\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        if m_name:
+            data["network_name"] = m_name.group(1)
+
+        m_sec = re.search(r'^\s*network_secret\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        if m_sec:
+            data["network_secret"] = m_sec.group(1)
+
+        m_host = re.search(r'^\s*hostname\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        if m_host:
+            data["hostname"] = m_host.group(1)
+
+        m_ip = re.search(r'^\s*ipv4\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
+        if m_ip:
+            data["ipv4"] = m_ip.group(1)
+
+        peers = re.findall(r'\[\[peer\]\]\s+uri\s*=\s*["\']([^"\']+)["\']', content)
+        data["peers"] = peers
+        return data
+
+    async def save_quick_config(self, cfg: Dict[str, Any]) -> bool:
+        """根据结构化参数保存为标准 config.toml 并重载服务"""
+        net_name = cfg.get("network_name", "").strip()
+        net_secret = cfg.get("network_secret", "").strip()
+        hostname = cfg.get("hostname", "steamdeck").strip() or "steamdeck"
+        ipv4 = cfg.get("ipv4", "").strip()
+        peers = cfg.get("peers", [])
+
+        if not isinstance(peers, list):
+            peers = [p.strip() for p in str(peers).splitlines() if p.strip()]
+
+        if not peers:
+            peers = [
+                "tcp://public.easytier.top:11010",
+                "tcp://39.108.52.138:11010"
+            ]
+
+        lines = [
+            f'hostname = "{hostname}"',
+            f'network_name = "{net_name}"',
+            f'network_secret = "{net_secret}"',
+        ]
+        if ipv4:
+            lines.append(f'ipv4 = "{ipv4}"')
+
+        lines.append("")
+        for p in peers:
+            if p:
+                lines.append("[[peer]]")
+                lines.append(f'uri = "{p}"')
+
+        lines.extend([
+            "",
+            "[flags]",
+            "use_smoltcp = true",
+            "latency_first = true",
+            "enable_exit_node = true",
+            "enable_udp_broadcast_relay = true",
+            "proxy_forward_by_system = true",
+            "relay_all_peer_rpc = true",
+            ""
+        ])
+
+        return await self.save_config("\n".join(lines))
+
+    async def open_web_ui(self) -> bool:
+        """在 SteamOS 中唤起 WebUI 浏览器"""
+        self._start_web_server()
+        url = f"http://127.0.0.1:{WEB_PORT}"
+        try:
+            subprocess.Popen(["steam", f"steam://openurl/{url}"], env=ENV)
+            return True
+        except Exception:
+            pass
+
+        try:
+            subprocess.Popen(["/usr/bin/xdg-open", url], env=ENV)
+            return True
+        except Exception:
+            return False
+
+    async def get_web_info(self) -> Dict[str, Any]:
+        """获取 WebUI 服务信息与本机局域网 IP"""
+        local_ips = ["127.0.0.1"]
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            lan_ip = s.getsockname()[0]
+            s.close()
+            if lan_ip and lan_ip not in local_ips:
+                local_ips.append(lan_ip)
+        except Exception:
+            pass
+
+        return {
+            "port": WEB_PORT,
+            "url_local": f"http://127.0.0.1:{WEB_PORT}",
+            "urls": [f"http://{ip}:{WEB_PORT}" for ip in local_ips]
+        }
