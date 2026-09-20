@@ -10,8 +10,9 @@ import {
   Spinner,
 } from "@decky/ui";
 import { callable, definePlugin, toaster } from "@decky/api";
-import { FC, useEffect, useState } from "react";
-import { FaNetworkWired, FaPlay, FaStop, FaRedo } from "react-icons/fa";
+import { FC, useEffect, useState, useMemo } from "react";
+import { FaNetworkWired, FaPlay, FaStop, FaRedo, FaGlobe } from "react-icons/fa";
+import { SupportedLang, getEffectiveLanguage, createTranslator } from "./i18n";
 
 interface ServiceStatus {
   installed: boolean;
@@ -89,6 +90,26 @@ const openWebUi = callable<[], boolean>("open_web_ui");
 const getWebInfo = callable<[], WebInfo>("get_web_info");
 
 const Content: FC = () => {
+  const [langPref, setLangPref] = useState<SupportedLang>(() => {
+    try {
+      const saved = localStorage.getItem("decky_easytier_lang_pref");
+      if (saved === "en" || saved === "zh" || saved === "ja" || saved === "auto") {
+        return saved;
+      }
+    } catch (e) {}
+    return "auto";
+  });
+
+  const resolvedLang = useMemo(() => getEffectiveLanguage(langPref), [langPref]);
+  const t = useMemo(() => createTranslator(resolvedLang), [resolvedLang]);
+
+  const handleSetLang = (lang: SupportedLang) => {
+    setLangPref(lang);
+    try {
+      localStorage.setItem("decky_easytier_lang_pref", lang);
+    } catch (e) {}
+  };
+
   const [activeTab, setActiveTab] = useState<string>("status");
   const [loading, setLoading] = useState<boolean>(true);
   const [status, setStatus] = useState<ServiceStatus | null>(null);
@@ -99,7 +120,7 @@ const Content: FC = () => {
   const [installingCore, setInstallingCore] = useState<boolean>(false);
 
   // 配置表单状态
-  const [netName, setNetName] = useState<string>("");
+  const [netName, setNetName] = useState<string>("" );
   const [netSecret, setNetSecret] = useState<string>("");
   const [hostname, setHostname] = useState<string>("steamdeck");
   const [ipv4, setIpv4] = useState<string>("");
@@ -173,18 +194,18 @@ const Content: FC = () => {
 
   const handleInstallCore = async () => {
     setInstallingCore(true);
-    toaster.toast({ title: "EasyTier", body: "正在在线下载官方核心组件，请稍候..." });
+    toaster.toast({ title: "EasyTier", body: t("toast_install_start") });
     try {
       const res = await installEasyTier();
       if (res && res.success) {
-        toaster.toast({ title: "EasyTier", body: res.message || "核心安装成功并就绪！" });
+        toaster.toast({ title: "EasyTier", body: res.message || t("toast_install_ok") });
         await loadData();
         await loadConfigData();
       } else {
-        toaster.toast({ title: "EasyTier", body: `安装失败: ${res?.message || "网络或解压异常"}` });
+        toaster.toast({ title: "EasyTier", body: `${t("toast_install_fail")}${res?.message || ""}` });
       }
     } catch (e: any) {
-      toaster.toast({ title: "EasyTier", body: `安装异常: ${e?.message || e}` });
+      toaster.toast({ title: "EasyTier", body: `${t("toast_install_fail")}${e?.message || e}` });
     } finally {
       setInstallingCore(false);
     }
@@ -194,10 +215,10 @@ const Content: FC = () => {
     setActionLoading(true);
     const ok = await startService();
     if (ok) {
-      toaster.toast({ title: "EasyTier", body: "服务已启动" });
+      toaster.toast({ title: "EasyTier", body: t("toast_start_ok") });
       await loadData();
     } else {
-      toaster.toast({ title: "EasyTier", body: "启动失败" });
+      toaster.toast({ title: "EasyTier", body: t("toast_start_fail") });
     }
     setActionLoading(false);
   };
@@ -206,10 +227,10 @@ const Content: FC = () => {
     setActionLoading(true);
     const ok = await stopService();
     if (ok) {
-      toaster.toast({ title: "EasyTier", body: "服务已停止" });
+      toaster.toast({ title: "EasyTier", body: t("toast_stop_ok") });
       await loadData();
     } else {
-      toaster.toast({ title: "EasyTier", body: "停止失败" });
+      toaster.toast({ title: "EasyTier", body: t("toast_stop_fail") });
     }
     setActionLoading(false);
   };
@@ -218,10 +239,10 @@ const Content: FC = () => {
     setActionLoading(true);
     const ok = await restartService();
     if (ok) {
-      toaster.toast({ title: "EasyTier", body: "服务已重启" });
+      toaster.toast({ title: "EasyTier", body: t("toast_restart_ok") });
       await loadData();
     } else {
-      toaster.toast({ title: "EasyTier", body: "重启失败" });
+      toaster.toast({ title: "EasyTier", body: t("toast_restart_fail") });
     }
     setActionLoading(false);
   };
@@ -229,7 +250,7 @@ const Content: FC = () => {
   const handleToggleEnable = async (val: boolean) => {
     const ok = await toggleAutostart(val);
     if (ok) {
-      toaster.toast({ title: "EasyTier", body: val ? "已开启开机自启" : "已关闭开机自启" });
+      toaster.toast({ title: "EasyTier", body: val ? t("toast_autostart_on") : t("toast_autostart_off") });
       await loadData();
     }
   };
@@ -237,12 +258,12 @@ const Content: FC = () => {
   const handlePing = async (ipWithMask: string) => {
     const rawIp = ipWithMask.split("/")[0].trim();
     if (!rawIp) return;
-    setPingResults((prev) => ({ ...prev, [rawIp]: "测速中..." }));
+    setPingResults((prev) => ({ ...prev, [rawIp]: t("peers_pinging") }));
     const res = await pingTarget(rawIp);
     if (res.success) {
       setPingResults((prev) => ({ ...prev, [rawIp]: `${res.avg_ms} ms` }));
     } else {
-      setPingResults((prev) => ({ ...prev, [rawIp]: "超时/失败" }));
+      setPingResults((prev) => ({ ...prev, [rawIp]: t("peers_ping_fail") }));
     }
   };
 
@@ -252,12 +273,12 @@ const Content: FC = () => {
       "tcp://39.108.52.138:11010"
     ].join("\n");
     setPeersInput((prev) => (prev.trim() ? `${prev.trim()}\n${defaultPeers}` : defaultPeers));
-    toaster.toast({ title: "EasyTier", body: "已追加官方公共节点" });
+    toaster.toast({ title: "EasyTier", body: t("toast_added_public") });
   };
 
   const handleSaveQuickConfig = async () => {
     if (!netName.trim()) {
-      toaster.toast({ title: "EasyTier", body: "请填写网络名称" });
+      toaster.toast({ title: "EasyTier", body: t("toast_enter_net_name") });
       return;
     }
     setActionLoading(true);
@@ -282,11 +303,11 @@ const Content: FC = () => {
     });
 
     if (ok) {
-      toaster.toast({ title: "EasyTier", body: "配置已保存并重载" });
+      toaster.toast({ title: "EasyTier", body: t("toast_save_ok") });
       await loadConfigData();
       await loadData();
     } else {
-      toaster.toast({ title: "EasyTier", body: "配置保存失败" });
+      toaster.toast({ title: "EasyTier", body: t("toast_save_fail") });
     }
     setActionLoading(false);
   };
@@ -295,21 +316,20 @@ const Content: FC = () => {
     setActionLoading(true);
     const ok = await saveConfig(rawToml);
     if (ok) {
-      toaster.toast({ title: "EasyTier", body: "原始配置已保存" });
+      toaster.toast({ title: "EasyTier", body: t("toast_save_raw_ok") });
       await loadConfigData();
       await loadData();
     } else {
-      toaster.toast({ title: "EasyTier", body: "保存失败" });
+      toaster.toast({ title: "EasyTier", body: t("toast_save_fail") });
     }
     setActionLoading(false);
   };
 
   const handleOpenWebUi = async () => {
+    toaster.toast({ title: "EasyTier", body: t("toast_open_web") });
     const ok = await openWebUi();
-    if (ok) {
-      toaster.toast({ title: "EasyTier", body: "正在打开 Web 控制台..." });
-    } else {
-      toaster.toast({ title: "EasyTier", body: `请在浏览器访问 http://127.0.0.1:${webInfo?.port || 21010}` });
+    if (!ok) {
+      toaster.toast({ title: "EasyTier", body: `http://127.0.0.1:${webInfo?.port || 21010}` });
     }
   };
 
@@ -323,15 +343,47 @@ const Content: FC = () => {
     );
   }
 
+  // 语言设置模块 (置于底部，方便切换)
+  const languageSection = (
+    <PanelSection title={t("lang_title")}>
+      <PanelSectionRow>
+        <Field
+          label={t("lang_label")}
+          description={
+            langPref === "auto"
+              ? `${t("lang_auto")} → ${resolvedLang.toUpperCase()}`
+              : resolvedLang.toUpperCase()
+          }
+        />
+      </PanelSectionRow>
+      <PanelSectionRow>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", width: "100%" }}>
+          <ButtonItem layout="inline" onClick={() => handleSetLang("auto")}>
+            <FaGlobe style={{ marginRight: 4 }} /> {langPref === "auto" ? "✓ " : ""}{t("lang_auto")}
+          </ButtonItem>
+          <ButtonItem layout="inline" onClick={() => handleSetLang("en")}>
+            {langPref === "en" ? "✓ " : ""}{t("lang_en")}
+          </ButtonItem>
+          <ButtonItem layout="inline" onClick={() => handleSetLang("zh")}>
+            {langPref === "zh" ? "✓ " : ""}{t("lang_zh")}
+          </ButtonItem>
+          <ButtonItem layout="inline" onClick={() => handleSetLang("ja")}>
+            {langPref === "ja" ? "✓ " : ""}{t("lang_ja")}
+          </ButtonItem>
+        </div>
+      </PanelSectionRow>
+    </PanelSection>
+  );
+
   // Tab 1: 运行状态
   const statusContent = (
     <div>
       {status && !status.installed && (
-        <PanelSection title="🚀 核心组件一键安装">
+        <PanelSection title={t("core_install_title")}>
           <PanelSectionRow>
             <Field
-              label="未检测到 EasyTier 核心"
-              description="系统尚未安装或未检测到 easytier-core。点击下方按钮即可一键在线下载官方最新 x86_64 核心并自动初始化系统守护服务，免去终端命令行操作。"
+              label={t("core_install_not_found")}
+              description={t("core_install_desc")}
             />
           </PanelSectionRow>
           <PanelSectionRow>
@@ -342,36 +394,36 @@ const Content: FC = () => {
             >
               {installingCore ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}>
-                  <Spinner /> 正在下载与部署核心组件...
+                  <Spinner /> {t("core_installing")}
                 </div>
               ) : (
-                "🚀 一键在线下载并安装 EasyTier 核心"
+                t("core_install_btn")
               )}
             </ButtonItem>
           </PanelSectionRow>
         </PanelSection>
       )}
 
-      <PanelSection title="运行状态">
+      <PanelSection title={t("status_title")}>
         {status?.core_installed && (
           <PanelSectionRow>
             <Field
-              label="核心版本"
-              description={status.core_version ? `v${status.core_version}` : "已就绪"}
+              label={t("status_core_ver")}
+              description={status.core_version ? `v${status.core_version}` : t("core_ready")}
             >
               <ButtonItem
                 layout="inline"
                 onClick={handleInstallCore}
                 disabled={installingCore || actionLoading}
               >
-                {installingCore ? "更新中..." : "重新安装/更新"}
+                {installingCore ? t("core_updating") : t("core_reinstall")}
               </ButtonItem>
             </Field>
           </PanelSectionRow>
         )}
 
         <PanelSectionRow>
-          <Field label="服务状态" description={status?.active ? "正在运行中" : "已停止"}>
+          <Field label={t("status_service")} description={status?.active ? t("status_running") : t("status_stopped")}>
             <span style={{ color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }}>
               {status?.active ? "● ACTIVE" : "● STOPPED"}
             </span>
@@ -381,26 +433,26 @@ const Content: FC = () => {
         {status?.active && nodeInfo && (
           <>
             <PanelSectionRow>
-              <Field label="虚拟 IP" description={nodeInfo.virtual_ip || "获取中..."} />
+              <Field label={t("status_vip")} description={nodeInfo.virtual_ip || t("status_fetching")} />
             </PanelSectionRow>
             <PanelSectionRow>
-              <Field label="主机名" description={nodeInfo.hostname || "steamdeck"} />
+              <Field label={t("status_hostname")} description={nodeInfo.hostname || "steamdeck"} />
             </PanelSectionRow>
             <PanelSectionRow>
-              <Field label="NAT 打洞类型" description={nodeInfo.nat_type || "未知"} />
+              <Field label={t("status_nat")} description={nodeInfo.nat_type || t("status_unknown")} />
             </PanelSectionRow>
             <PanelSectionRow>
-              <Field label="Peer ID" description={nodeInfo.peer_id || "-"} />
+              <Field label={t("status_peer_id")} description={nodeInfo.peer_id || "-"} />
             </PanelSectionRow>
           </>
         )}
       </PanelSection>
 
-      <PanelSection title="服务控制">
+      <PanelSection title={t("ctrl_title")}>
         <PanelSectionRow>
           <ToggleField
-            label="开机自启"
-            description="随系统启动自动守护 EasyTier"
+            label={t("ctrl_autostart")}
+            description={t("ctrl_autostart_desc")}
             checked={status?.enabled ?? false}
             onChange={handleToggleEnable}
             disabled={actionLoading}
@@ -412,17 +464,17 @@ const Content: FC = () => {
             <div style={{ flex: 1 }}>
               {!status?.active ? (
                 <ButtonItem layout="inline" onClick={handleStart} disabled={actionLoading}>
-                  <FaPlay style={{ marginRight: 6 }} /> 启动
+                  <FaPlay style={{ marginRight: 6 }} /> {t("ctrl_start")}
                 </ButtonItem>
               ) : (
                 <ButtonItem layout="inline" onClick={handleStop} disabled={actionLoading}>
-                  <FaStop style={{ marginRight: 6 }} /> 停止
+                  <FaStop style={{ marginRight: 6 }} /> {t("ctrl_stop")}
                 </ButtonItem>
               )}
             </div>
             <div style={{ flex: 1 }}>
               <ButtonItem layout="inline" onClick={handleRestart} disabled={actionLoading}>
-                <FaRedo style={{ marginRight: 6 }} /> 重启
+                <FaRedo style={{ marginRight: 6 }} /> {t("ctrl_restart")}
               </ButtonItem>
             </div>
           </div>
@@ -430,15 +482,18 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ButtonItem layout="below" onClick={loadData} disabled={actionLoading}>
-            刷新节点与状态
+            {t("ctrl_refresh")}
           </ButtonItem>
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title={`组网 Peers (${peers.length})`}>
+      <PanelSection title={`${t("peers_title")} (${peers.length})`}>
         {peers.length === 0 ? (
           <PanelSectionRow>
-            <Field label="暂无对端节点" description={status?.active ? "等待连接 Peers..." : "请先启动服务"} />
+            <Field
+              label={t("peers_none")}
+              description={status?.active ? t("peers_none_desc_active") : t("peers_none_desc_stopped")}
+            />
           </PanelSectionRow>
         ) : (
           peers.map((peer, idx) => {
@@ -451,26 +506,26 @@ const Content: FC = () => {
             return (
               <PanelSectionRow key={idx}>
                 <Field
-                  label={peer.hostname || (isLocal ? "本机" : "未知主机")}
+                  label={peer.hostname || (isLocal ? t("peers_local_host") : t("peers_unknown_host"))}
                   description={
                     <div>
                       <div>IP: {peer.ipv4}</div>
                       <div>
-                        模式:{" "}
+                        {t("peers_mode")}:{" "}
                         <span style={{ color: isLocal ? "#8bc34a" : isP2P ? "#4caf50" : "#ff9800" }}>
                           {peer.cost.toUpperCase()}
                         </span>
                         {" | "}
-                        延时: {peer.latency || "-"}
+                        {t("peers_lat")}: {peer.latency || "-"}
                         {" | "}
-                        丢包: {peer.loss || "0%"}
+                        {t("peers_loss")}: {peer.loss || "0%"}
                       </div>
                       <div style={{ fontSize: "11px", color: "#8b949e", marginTop: "2px" }}>
-                        流量(收/发): {traffic}
+                        {t("peers_traffic")}: {traffic}
                       </div>
                       {pingText && (
                         <div style={{ color: "#00e5ff", marginTop: "2px" }}>
-                          Ping 测速: {pingText}
+                          Ping: {pingText}
                         </div>
                       )}
                     </div>
@@ -478,7 +533,7 @@ const Content: FC = () => {
                 >
                   {!isLocal && rawIp && (
                     <ButtonItem layout="inline" onClick={() => handlePing(peer.ipv4)} disabled={actionLoading}>
-                      测速
+                      {t("peers_ping_btn")}
                     </ButtonItem>
                   )}
                 </Field>
@@ -487,17 +542,19 @@ const Content: FC = () => {
           })
         )}
       </PanelSection>
+
+      {languageSection}
     </div>
   );
 
   // Tab 2: 网络配置
   const configContent = (
     <div>
-      <PanelSection title="快捷组网配置">
+      <PanelSection title={t("cfg_title")}>
         <PanelSectionRow>
           <TextField
-            label="网络名称 (Network Name)"
-            description="加入或创建的异地组网名称"
+            label={t("cfg_net_name")}
+            description={t("cfg_net_name_desc")}
             value={netName}
             onChange={(e) => setNetName(e.target.value)}
           />
@@ -505,8 +562,8 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <TextField
-            label="网络密码 (Network Secret)"
-            description="用于组网节点间通信认证与加密"
+            label={t("cfg_net_secret")}
+            description={t("cfg_net_secret_desc")}
             value={netSecret}
             bIsPassword={!showSecret}
             onChange={(e) => setNetSecret(e.target.value)}
@@ -515,7 +572,7 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ToggleField
-            label="显示密码"
+            label={t("cfg_show_secret")}
             checked={showSecret}
             onChange={setShowSecret}
           />
@@ -523,8 +580,8 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <TextField
-            label="虚拟 IPv4 (可选)"
-            description="如 10.144.144.202/24，留空则由网络自动分配"
+            label={t("cfg_vip")}
+            description={t("cfg_vip_desc")}
             value={ipv4}
             onChange={(e) => setIpv4(e.target.value)}
           />
@@ -532,19 +589,19 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <TextField
-            label="主机名称 (Hostname)"
-            description="在组网 Peers 中展示的设备名"
+            label={t("cfg_hostname")}
+            description={t("cfg_hostname_desc")}
             value={hostname}
             onChange={(e) => setHostname(e.target.value)}
           />
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="联机与性能优化">
+      <PanelSection title={t("opt_title")}>
         <PanelSectionRow>
           <ToggleField
-            label="UDP 广播转发"
-            description="局域网联机搜房必备 (帕鲁/求生之路/MC等)"
+            label={t("opt_udp")}
+            description={t("opt_udp_desc")}
             checked={udpRelay}
             onChange={setUdpRelay}
           />
@@ -552,8 +609,8 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ToggleField
-            label="延迟优先传输"
-            description="自动探测物理最优路线，联机对战首选"
+            label={t("opt_latency")}
+            description={t("opt_latency_desc")}
             checked={latencyFirst}
             onChange={setLatencyFirst}
           />
@@ -561,8 +618,8 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ToggleField
-            label="SmolTCP 协议栈加速"
-            description="启用独立高性能用户态 TCP/IP 栈"
+            label={t("opt_smoltcp")}
+            description={t("opt_smoltcp_desc")}
             checked={useSmoltcp}
             onChange={setUseSmoltcp}
           />
@@ -570,19 +627,19 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ToggleField
-            label="允许出口节点 (Exit Node)"
-            description="支持将流量通过指定节点转发出口"
+            label={t("opt_exit")}
+            description={t("opt_exit_desc")}
             checked={enableExitNode}
             onChange={setEnableExitNode}
           />
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="对端 Peers 节点配置">
+      <PanelSection title={t("peer_cfg_title")}>
         <PanelSectionRow>
           <div style={{ width: "100%" }}>
             <div style={{ fontSize: "12px", color: "#8b949e", marginBottom: "6px" }}>
-              每行一个对端 URI（如 tcp://public.easytier.top:11010）:
+              {t("peer_cfg_hint")}
             </div>
             <textarea
               style={{
@@ -604,22 +661,22 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ButtonItem layout="below" onClick={handleFillPublicPeers}>
-            ➕ 一键追加官方公共节点
+            {t("peer_cfg_add_public")}
           </ButtonItem>
         </PanelSectionRow>
 
         <PanelSectionRow>
           <ButtonItem layout="below" onClick={handleSaveQuickConfig} disabled={actionLoading}>
-            💾 保存配置并应用重启
+            {t("peer_cfg_save")}
           </ButtonItem>
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="高级配置">
+      <PanelSection title={t("adv_title")}>
         <PanelSectionRow>
           <ToggleField
-            label="编辑原始 config.toml"
-            description="展开直接查看与编辑完整的 TOML 文件"
+            label={t("adv_toml_toggle")}
+            description={t("adv_toml_desc")}
             checked={showRawToml}
             onChange={setShowRawToml}
           />
@@ -646,7 +703,7 @@ const Content: FC = () => {
             </PanelSectionRow>
             <PanelSectionRow>
               <ButtonItem layout="below" onClick={handleSaveRawToml} disabled={actionLoading}>
-                保存原始 TOML 配置
+                {t("adv_toml_save")}
               </ButtonItem>
             </PanelSectionRow>
           </>
@@ -658,11 +715,11 @@ const Content: FC = () => {
   // Tab 3: Web 端管理
   const webContent = (
     <div>
-      <PanelSection title="内置 Web 控制台">
+      <PanelSection title={t("web_title")}>
         <PanelSectionRow>
           <Field
-            label="Web 管理服务"
-            description={`运行状态: 正在监听端口 ${webInfo?.port || 21010}`}
+            label={t("web_status")}
+            description={`${t("web_status_listening")}: ${webInfo?.port || 21010}`}
           >
             <span style={{ color: "#4caf50", fontWeight: "bold" }}>● RUNNING</span>
           </Field>
@@ -670,15 +727,15 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <ButtonItem layout="below" onClick={handleOpenWebUi}>
-            🚀 在 Steam 浏览器中打开 Web 仪表盘
+            {t("web_open_btn")}
           </ButtonItem>
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="远程与移动端管理">
+      <PanelSection title={t("web_remote_title")}>
         <PanelSectionRow>
           <Field
-            label="本机访问 (Steam Deck)"
+            label={t("web_local")}
             description={webInfo?.url_local || "http://127.0.0.1:21010"}
           />
         </PanelSectionRow>
@@ -686,7 +743,7 @@ const Content: FC = () => {
         {webInfo?.url_lan && (
           <PanelSectionRow>
             <Field
-              label="📱 局域网 Wi-Fi 访问 (推荐手机/PC)"
+              label={t("web_lan")}
               description={webInfo.url_lan}
             />
           </PanelSectionRow>
@@ -695,7 +752,7 @@ const Content: FC = () => {
         {webInfo?.url_easytier && (
           <PanelSectionRow>
             <Field
-              label="🌐 EasyTier 异地组网内访问"
+              label={t("web_easytier")}
               description={webInfo.url_easytier}
             />
           </PanelSectionRow>
@@ -703,21 +760,21 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }}>
-            提示：只要手机或电脑连接同一个 Wi-Fi，在浏览器中输入上述「局域网 Wi-Fi 访问」地址，即可免除手柄输入、用键盘鼠标惬意管理组网与配置！
+            {t("web_hint")}
           </div>
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="官方云端控制台">
+      <PanelSection title={t("web_cloud_title")}>
         <PanelSectionRow>
           <Field
-            label="官方可视化管理平台"
+            label={t("web_cloud_service")}
             description="https://config-server.easytier.cn"
           />
         </PanelSectionRow>
         <PanelSectionRow>
           <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }}>
-            EasyTier 官方提供了统一的多设备云端配置与状态服务。可在 PC 端登录官方平台，统筹下发网络拓扑。
+            {t("web_cloud_desc")}
           </div>
         </PanelSectionRow>
       </PanelSection>
@@ -727,17 +784,17 @@ const Content: FC = () => {
   const tabs = [
     {
       id: "status",
-      title: "状态",
+      title: t("tab_status"),
       content: statusContent,
     },
     {
       id: "config",
-      title: "配置",
+      title: t("tab_config"),
       content: configContent,
     },
     {
       id: "web",
-      title: "WebUI",
+      title: t("tab_web"),
       content: webContent,
     },
   ];
@@ -752,7 +809,7 @@ const Content: FC = () => {
 export default definePlugin(() => {
   return {
     name: "decky-easytier",
-    titleView: <div className={staticClasses.Title}>EasyTier 管理器</div>,
+    titleView: <div className={staticClasses.Title}>EasyTier</div>,
     content: <Content />,
     icon: <FaNetworkWired />,
     onDismount() {},

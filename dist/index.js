@@ -87,7 +87,396 @@ function FaStop (props) {
   return GenIcon({"attr":{"viewBox":"0 0 448 512"},"child":[{"tag":"path","attr":{"d":"M424.4 214.7L72.4 6.6C43.8-10.3 0 6.1 0 47.9V464c0 37.5 40.7 60.1 72.4 41.3l352-208c31.4-18.5 31.5-64.1 0-82.6z"},"child":[]}]})(props);
 }function FaNetworkWired (props) {
   return GenIcon({"attr":{"viewBox":"0 0 640 512"},"child":[{"tag":"path","attr":{"d":"M640 264v-16c0-8.84-7.16-16-16-16H344v-40h72c17.67 0 32-14.33 32-32V32c0-17.67-14.33-32-32-32H224c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h72v40H16c-8.84 0-16 7.16-16 16v16c0 8.84 7.16 16 16 16h104v40H64c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h160c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32h-56v-40h304v40h-56c-17.67 0-32 14.33-32 32v128c0 17.67 14.33 32 32 32h160c17.67 0 32-14.33 32-32V352c0-17.67-14.33-32-32-32h-56v-40h104c8.84 0 16-7.16 16-16zM256 128V64h128v64H256zm-64 320H96v-64h96v64zm352 0h-96v-64h96v64z"},"child":[]}]})(props);
+}function FaGlobe (props) {
+  return GenIcon({"attr":{"viewBox":"0 0 496 512"},"child":[{"tag":"path","attr":{"d":"M336.5 160C322 70.7 287.8 8 248 8s-74 62.7-88.5 152h177zM152 256c0 22.2 1.2 43.5 3.3 64h185.3c2.1-20.5 3.3-41.8 3.3-64s-1.2-43.5-3.3-64H155.3c-2.1 20.5-3.3 41.8-3.3 64zm324.7-96c-28.6-67.9-86.5-120.4-158-141.6 24.4 33.8 41.2 84.7 50 141.6h108zM177.2 18.4C105.8 39.6 47.8 92.1 19.3 160h108c8.7-56.9 25.5-107.8 49.9-141.6zM487.4 192H372.7c2.1 21 3.3 42.5 3.3 64s-1.2 43-3.3 64h114.6c5.5-20.5 8.6-41.8 8.6-64s-3.1-43.5-8.5-64zM120 256c0-21.5 1.2-43 3.3-64H8.6C3.2 212.5 0 233.8 0 256s3.2 43.5 8.6 64h114.6c-2-21-3.2-42.5-3.2-64zm39.5 96c14.5 89.3 48.7 152 88.5 152s74-62.7 88.5-152h-177zm159.3 141.6c71.4-21.2 129.4-73.7 158-141.6h-108c-8.8 56.9-25.6 107.8-50 141.6zM19.3 352c28.6 67.9 86.5 120.4 158 141.6-24.4-33.8-41.2-84.7-50-141.6h-108z"},"child":[]}]})(props);
 }
+
+const detectSystemLanguage = () => {
+    try {
+        let raw = "";
+        if (typeof window !== "undefined" && window.navigator) {
+            raw = window.navigator.languages?.[0] || window.navigator.language || "";
+        }
+        raw = raw.toLowerCase();
+        if (raw.startsWith("zh"))
+            return "zh";
+        if (raw.startsWith("ja"))
+            return "ja";
+    }
+    catch (e) {
+        // fallback
+    }
+    return "en";
+};
+const getEffectiveLanguage = (pref) => {
+    if (pref === "auto") {
+        return detectSystemLanguage();
+    }
+    return pref;
+};
+const translations = {
+    en: {
+        plugin_title: "EasyTier Manager",
+        tab_status: "Status",
+        tab_config: "Config",
+        tab_web: "WebUI",
+        // One-click core setup
+        core_install_title: "🚀 One-Click Core Setup",
+        core_install_not_found: "EasyTier Core Not Detected",
+        core_install_desc: "The system does not have easytier-core installed. Click below to automatically download the official x86_64 binary and configure system daemon services without using terminal commands.",
+        core_install_btn: "🚀 Download & Install EasyTier Core",
+        core_installing: "Downloading & deploying core...",
+        core_reinstall: "Reinstall / Update",
+        core_updating: "Updating...",
+        core_ready: "Ready",
+        // Runtime Status
+        status_title: "Runtime Status",
+        status_core_ver: "Core Version",
+        status_service: "Service Status",
+        status_running: "Running",
+        status_stopped: "Stopped",
+        status_vip: "Virtual IP",
+        status_fetching: "Fetching...",
+        status_hostname: "Hostname",
+        status_nat: "NAT Traversal Type",
+        status_unknown: "Unknown",
+        status_peer_id: "Peer ID",
+        // Service Controls
+        ctrl_title: "Service Controls",
+        ctrl_autostart: "Auto-start on Boot",
+        ctrl_autostart_desc: "Automatically start EasyTier with system boot",
+        ctrl_start: "Start",
+        ctrl_stop: "Stop",
+        ctrl_restart: "Restart",
+        ctrl_refresh: "Refresh Peers & Status",
+        // Peers
+        peers_title: "Network Peers",
+        peers_none: "No Connected Peers",
+        peers_none_desc_active: "Waiting for peer handshakes...",
+        peers_none_desc_stopped: "Start the service to connect",
+        peers_local_host: "Local Machine",
+        peers_unknown_host: "Unknown Node",
+        peers_mode: "Mode",
+        peers_lat: "Latency",
+        peers_loss: "Loss",
+        peers_traffic: "Traffic (RX/TX)",
+        peers_ping_btn: "Ping",
+        peers_pinging: "Pinging...",
+        peers_ping_fail: "Timeout/Fail",
+        // Quick Config
+        cfg_title: "Quick Configuration",
+        cfg_net_name: "Network Name",
+        cfg_net_name_desc: "Name of the network to create or join",
+        cfg_net_secret: "Network Secret",
+        cfg_net_secret_desc: "Shared password for mutual encryption & auth",
+        cfg_show_secret: "Show Secret",
+        cfg_vip: "Virtual IPv4 (Optional)",
+        cfg_vip_desc: "e.g. 10.144.144.202/24, leave blank for DHCP",
+        cfg_hostname: "Hostname",
+        cfg_hostname_desc: "Identifier displayed to other peers",
+        // Gaming & Optimization
+        opt_title: "Gaming & Performance Tuning",
+        opt_udp: "UDP Broadcast Relay",
+        opt_udp_desc: "Crucial for LAN room discovery (Palworld, L4D2, MC, etc.)",
+        opt_latency: "Latency-First Routing",
+        opt_latency_desc: "Prioritize lowest RTT route, recommended for multiplayer games",
+        opt_smoltcp: "SmolTCP Stack Acceleration",
+        opt_smoltcp_desc: "Enable high-performance user-space network stack",
+        opt_exit: "Allow Exit Node",
+        opt_exit_desc: "Support routing outbound internet traffic through designated nodes",
+        // Peer Endpoints
+        peer_cfg_title: "Peer Endpoints (Public Nodes)",
+        peer_cfg_hint: "One peer URI per line (e.g. tcp://public.easytier.top:11010):",
+        peer_cfg_add_public: "➕ Add Official Public Peers",
+        peer_cfg_save: "💾 Save Config & Restart Service",
+        // Advanced TOML
+        adv_title: "Advanced Configuration",
+        adv_toml_toggle: "Edit raw config.toml",
+        adv_toml_desc: "Directly view and modify complete TOML config file",
+        adv_toml_save: "Save Raw TOML Config",
+        // Web Console Tab
+        web_title: "Embedded Web Console",
+        web_status: "Web Management Service",
+        web_status_listening: "Listening on port",
+        web_open_btn: "🚀 Open Web Console in Steam Browser",
+        web_remote_title: "Remote & Mobile Management",
+        web_local: "On-Device (Steam Deck)",
+        web_lan: "📱 Local Wi-Fi Access (Recommended for Phone/PC)",
+        web_easytier: "🌐 Access via EasyTier Mesh IP",
+        web_hint: "Tip: Connect your phone or PC to the same Wi-Fi network and open the Local Wi-Fi URL in your browser to effortlessly configure network names and passwords using a physical keyboard!",
+        web_cloud_title: "Official Cloud Portal",
+        web_cloud_service: "Visual Cloud Management Dashboard",
+        web_cloud_desc: "EasyTier provides an official cloud portal for managing multiple devices and visual network topologies.",
+        // Language Selector
+        lang_title: "Interface Language",
+        lang_label: "Language Preference",
+        lang_auto: "Auto (Follow SteamOS)",
+        lang_en: "English",
+        lang_zh: "简体中文 (Chinese)",
+        lang_ja: "日本語 (Japanese)",
+        // Toasts
+        toast_install_start: "Downloading official EasyTier core, please wait...",
+        toast_install_ok: "Core installed and service running!",
+        toast_install_fail: "Installation failed: ",
+        toast_start_ok: "EasyTier service started",
+        toast_start_fail: "Failed to start service",
+        toast_stop_ok: "EasyTier service stopped",
+        toast_stop_fail: "Failed to stop service",
+        toast_restart_ok: "EasyTier service restarted",
+        toast_restart_fail: "Failed to restart service",
+        toast_autostart_on: "Auto-start enabled",
+        toast_autostart_off: "Auto-start disabled",
+        toast_added_public: "Appended official public peers",
+        toast_enter_net_name: "Please enter a network name",
+        toast_save_ok: "Config saved and service reloaded",
+        toast_save_fail: "Failed to save config",
+        toast_save_raw_ok: "Raw TOML config saved",
+        toast_open_web: "Opening Web Console in browser...",
+    },
+    zh: {
+        plugin_title: "EasyTier 管理器",
+        tab_status: "状态",
+        tab_config: "配置",
+        tab_web: "WebUI",
+        // 一键安装
+        core_install_title: "🚀 核心组件一键安装",
+        core_install_not_found: "未检测到 EasyTier 核心",
+        core_install_desc: "系统尚未安装或未检测到 easytier-core。点击下方按钮即可一键在线下载官方最新 x86_64 核心并自动初始化系统守护服务，免去终端命令行操作。",
+        core_install_btn: "🚀 一键在线下载并安装 EasyTier 核心",
+        core_installing: "正在下载与部署核心组件...",
+        core_reinstall: "重新安装/更新",
+        core_updating: "更新中...",
+        core_ready: "已就绪",
+        // 运行状态
+        status_title: "运行状态",
+        status_core_ver: "核心版本",
+        status_service: "服务状态",
+        status_running: "正在运行中",
+        status_stopped: "已停止",
+        status_vip: "虚拟 IP",
+        status_fetching: "获取中...",
+        status_hostname: "主机名",
+        status_nat: "NAT 打洞类型",
+        status_unknown: "未知",
+        status_peer_id: "Peer ID",
+        // 服务控制
+        ctrl_title: "服务控制",
+        ctrl_autostart: "开机自启",
+        ctrl_autostart_desc: "随系统启动自动守护 EasyTier",
+        ctrl_start: "启动",
+        ctrl_stop: "停止",
+        ctrl_restart: "重启",
+        ctrl_refresh: "刷新节点与状态",
+        // Peers
+        peers_title: "组网 Peers",
+        peers_none: "暂无对端节点",
+        peers_none_desc_active: "等待连接 Peers...",
+        peers_none_desc_stopped: "请先启动服务",
+        peers_local_host: "本机",
+        peers_unknown_host: "未知主机",
+        peers_mode: "模式",
+        peers_lat: "延时",
+        peers_loss: "丢包",
+        peers_traffic: "流量(收/发)",
+        peers_ping_btn: "测速",
+        peers_pinging: "测速中...",
+        peers_ping_fail: "超时/失败",
+        // 快捷配置
+        cfg_title: "快捷组网配置",
+        cfg_net_name: "网络名称 (Network Name)",
+        cfg_net_name_desc: "加入或创建的异地组网名称",
+        cfg_net_secret: "网络密码 (Network Secret)",
+        cfg_net_secret_desc: "用于组网节点间通信认证与加密",
+        cfg_show_secret: "显示密码",
+        cfg_vip: "虚拟 IPv4 (可选)",
+        cfg_vip_desc: "如 10.144.144.202/24，留空则由网络自动分配",
+        cfg_hostname: "主机名称 (Hostname)",
+        cfg_hostname_desc: "在组网 Peers 中展示的设备名",
+        // 联机优化
+        opt_title: "联机与性能优化",
+        opt_udp: "UDP 广播转发",
+        opt_udp_desc: "局域网联机搜房必备 (帕鲁/求生之路/MC等)",
+        opt_latency: "延迟优先传输",
+        opt_latency_desc: "自动探测物理最优路线，联机对战首选",
+        opt_smoltcp: "SmolTCP 协议栈加速",
+        opt_smoltcp_desc: "启用独立高性能用户态 TCP/IP 栈",
+        opt_exit: "允许出口节点 (Exit Node)",
+        opt_exit_desc: "支持将流量通过指定节点转发出口",
+        // 对端 Peers
+        peer_cfg_title: "对端 Peers 节点配置",
+        peer_cfg_hint: "每行一个对端 URI（如 tcp://public.easytier.top:11010）:",
+        peer_cfg_add_public: "➕ 一键追加官方公共节点",
+        peer_cfg_save: "💾 保存配置并应用重启",
+        // 高级 TOML
+        adv_title: "高级配置",
+        adv_toml_toggle: "编辑原始 config.toml",
+        adv_toml_desc: "展开直接查看与编辑完整的 TOML 文件",
+        adv_toml_save: "保存原始 TOML 配置",
+        // Web 控制台
+        web_title: "内置 Web 控制台",
+        web_status: "Web 管理服务",
+        web_status_listening: "正在监听端口",
+        web_open_btn: "🚀 在 Steam 浏览器中打开 Web 仪表盘",
+        web_remote_title: "远程与移动端管理",
+        web_local: "本机访问 (Steam Deck)",
+        web_lan: "📱 局域网 Wi-Fi 访问 (推荐手机/PC)",
+        web_easytier: "🌐 EasyTier 异地组网内访问",
+        web_hint: "提示：只要手机或电脑连接同一个 Wi-Fi，在浏览器中输入上述「局域网 Wi-Fi 访问」地址，即可免除手柄输入、用键盘鼠标惬意管理组网与配置！",
+        web_cloud_title: "官方云端控制台",
+        web_cloud_service: "官方可视化管理平台",
+        web_cloud_desc: "EasyTier 官方提供了统一的多设备云端配置与状态服务。可在 PC 端登录官方平台，统筹下发网络拓扑。",
+        // 语言选择
+        lang_title: "界面语言设置",
+        lang_label: "语言偏好",
+        lang_auto: "自动 (跟随 SteamOS)",
+        lang_en: "English (英语)",
+        lang_zh: "简体中文",
+        lang_ja: "日本語 (日语)",
+        // Toasts
+        toast_install_start: "正在在线下载官方核心组件，请稍候...",
+        toast_install_ok: "核心安装成功并就绪！",
+        toast_install_fail: "安装失败: ",
+        toast_start_ok: "服务已启动",
+        toast_start_fail: "启动失败",
+        toast_stop_ok: "服务已停止",
+        toast_stop_fail: "停止失败",
+        toast_restart_ok: "服务已重启",
+        toast_restart_fail: "重启失败",
+        toast_autostart_on: "已开启开机自启",
+        toast_autostart_off: "已关闭开机自启",
+        toast_added_public: "已追加官方公共节点",
+        toast_enter_net_name: "请填写网络名称",
+        toast_save_ok: "配置已保存并重载",
+        toast_save_fail: "配置保存失败",
+        toast_save_raw_ok: "原始配置已保存",
+        toast_open_web: "正在打开 Web 控制台...",
+    },
+    ja: {
+        plugin_title: "EasyTier 管理",
+        tab_status: "ステータス",
+        tab_config: "設定",
+        tab_web: "WebUI",
+        // コア導入
+        core_install_title: "🚀 コアワンクリック導入",
+        core_install_not_found: "EasyTier コアが見つかりません",
+        core_install_desc: "easytier-core が未導入です。下のボタンを押すと公式の最新 x86_64 コアを自動ダウンロードし、デーモンを初期化します。端末コマンドの入力は一切不要です。",
+        core_install_btn: "🚀 EasyTier コアを自動取得・インストール",
+        core_installing: "コアのダウンロードと配置を実行中...",
+        core_reinstall: "再インストール / 更新",
+        core_updating: "更新中...",
+        core_ready: "準備完了",
+        // 実行ステータス
+        status_title: "実行ステータス",
+        status_core_ver: "コアバージョン",
+        status_service: "サービス状態",
+        status_running: "実行中",
+        status_stopped: "停止中",
+        status_vip: "仮想 IP",
+        status_fetching: "取得中...",
+        status_hostname: "ホスト名",
+        status_nat: "NAT タイプ",
+        status_unknown: "不明",
+        status_peer_id: "Peer ID",
+        // サービス制御
+        ctrl_title: "サービス制御",
+        ctrl_autostart: "OS起動時に自動起動",
+        ctrl_autostart_desc: "SteamOS 起動時に EasyTier をバックグラウンド実行",
+        ctrl_start: "起動",
+        ctrl_stop: "停止",
+        ctrl_restart: "再起動",
+        ctrl_refresh: "ピアと状態を更新",
+        // ピア一覧
+        peers_title: "ピア一覧",
+        peers_none: "接続中のピアはありません",
+        peers_none_desc_active: "ピアの接続待機中...",
+        peers_none_desc_stopped: "サービスを起動してください",
+        peers_local_host: "本体",
+        peers_unknown_host: "不明なホスト",
+        peers_mode: "モード",
+        peers_lat: "遅延",
+        peers_loss: "パケロス",
+        peers_traffic: "通信量(受信/送信)",
+        peers_ping_btn: "測定",
+        peers_pinging: "測定中...",
+        peers_ping_fail: "タイムアウト/失敗",
+        // 簡易設定
+        cfg_title: "簡易ネットワーク設定",
+        cfg_net_name: "ネットワーク名 (Network Name)",
+        cfg_net_name_desc: "参加または新規作成する仮想ネットワーク名",
+        cfg_net_secret: "パスワード (Network Secret)",
+        cfg_net_secret_desc: "ノード間の認証と暗号化に使用する秘密鍵",
+        cfg_show_secret: "パスワードを表示",
+        cfg_vip: "仮想 IPv4 (任意)",
+        cfg_vip_desc: "例: 10.144.144.202/24、空欄時は自動割り当て",
+        cfg_hostname: "ホスト名 (Hostname)",
+        cfg_hostname_desc: "ピア一覧に表示されるデバイス名",
+        // 通信最適化
+        opt_title: "マルチプレイ通信最適化",
+        opt_udp: "UDP ブロードキャスト転送",
+        opt_udp_desc: "LAN サーバー検索に必須 (パルワールド/L4D2/マイクラなど)",
+        opt_latency: "遅延優先ルーティング",
+        opt_latency_desc: "物理的な最短経路を優先探索。対戦プレイ推奨",
+        opt_smoltcp: "SmolTCP スタック高速化",
+        opt_smoltcp_desc: "高性能なユーザー空間 TCP/IP スタックを有効化",
+        opt_exit: "出口ノード許可 (Exit Node)",
+        opt_exit_desc: "指定したノードを経由してインターネットに接続可能",
+        // 接続ピア
+        peer_cfg_title: "接続ピア (公開ノード) 設定",
+        peer_cfg_hint: "1行に1つのピア URI を入力 (例: tcp://public.easytier.top:11010):",
+        peer_cfg_add_public: "➕ 公式パブリックピアを追加",
+        peer_cfg_save: "💾 設定を保存して再起動",
+        // 詳細 TOML
+        adv_title: "高度な設定",
+        adv_toml_toggle: "生の config.toml を直接編集",
+        adv_toml_desc: "TOML 設定ファイル全文を直接確認・編集",
+        adv_toml_save: "TOML 設定を保存",
+        // Web コンソール
+        web_title: "内蔵 Web コンソール",
+        web_status: "Web サーバー状態",
+        web_status_listening: "リッスン中のポート",
+        web_open_btn: "🚀 Steam ブラウザで Web コンソールを開く",
+        web_remote_title: "リモート・スマートフォン管理",
+        web_local: "本体アクセス (Steam Deck)",
+        web_lan: "📱 LAN Wi-Fi アクセス (スマホ・PC 推奨)",
+        web_easytier: "🌐 EasyTier 仮想ネットワーク経由",
+        web_hint: "ヒント: 同一 Wi-Fi に接続したスマホや PC のブラウザから上記の「LAN Wi-Fi アクセス」を開くと、キーボードを使って長いパスワードも快適に入力できます！",
+        web_cloud_title: "公式クラウドダッシュボード",
+        web_cloud_service: "公式クラウド管理プラットフォーム",
+        web_cloud_desc: "EasyTier 公式が提供するクラウド一元管理サービスです。PC からネットワークトポロジを一括管理できます。",
+        // 言語設定
+        lang_title: "言語設定 (Language)",
+        lang_label: "表示言語",
+        lang_auto: "自動 (SteamOS に連動)",
+        lang_en: "English (英語)",
+        lang_zh: "简体中文 (中国語)",
+        lang_ja: "日本語",
+        // Toasts
+        toast_install_start: "EasyTier 公式コアをダウンロード中...",
+        toast_install_ok: "コアのインストールが完了し、起動しました！",
+        toast_install_fail: "インストール失敗: ",
+        toast_start_ok: "サービスを開始しました",
+        toast_start_fail: "サービスの開始に失敗しました",
+        toast_stop_ok: "サービスを停止しました",
+        toast_stop_fail: "サービスの停止に失敗しました",
+        toast_restart_ok: "サービスを再起動しました",
+        toast_restart_fail: "サービスの再起動に失败しました",
+        toast_autostart_on: "自動起動を有効にしました",
+        toast_autostart_off: "自動起動を無効にしました",
+        toast_added_public: "公式パブリックピアを追加しました",
+        toast_enter_net_name: "ネットワーク名を入力してください",
+        toast_save_ok: "設定を保存し、再読み込みしました",
+        toast_save_fail: "設定の保存に失敗しました",
+        toast_save_raw_ok: "TOML 設定を保存しました",
+        toast_open_web: "Web コンソールを開いています...",
+    },
+};
+const createTranslator = (lang) => {
+    const dict = translations[lang] || translations.en;
+    const fallback = translations.en;
+    return (key) => {
+        return dict[key] || fallback[key] || key;
+    };
+};
 
 // 后端 API 声明
 const getServiceStatus = callable("get_service_status");
@@ -106,6 +495,25 @@ const saveConfig = callable("save_config");
 const openWebUi = callable("open_web_ui");
 const getWebInfo = callable("get_web_info");
 const Content = () => {
+    const [langPref, setLangPref] = SP_REACT.useState(() => {
+        try {
+            const saved = localStorage.getItem("decky_easytier_lang_pref");
+            if (saved === "en" || saved === "zh" || saved === "ja" || saved === "auto") {
+                return saved;
+            }
+        }
+        catch (e) { }
+        return "auto";
+    });
+    const resolvedLang = SP_REACT.useMemo(() => getEffectiveLanguage(langPref), [langPref]);
+    const t = SP_REACT.useMemo(() => createTranslator(resolvedLang), [resolvedLang]);
+    const handleSetLang = (lang) => {
+        setLangPref(lang);
+        try {
+            localStorage.setItem("decky_easytier_lang_pref", lang);
+        }
+        catch (e) { }
+    };
     const [activeTab, setActiveTab] = SP_REACT.useState("status");
     const [loading, setLoading] = SP_REACT.useState(true);
     const [status, setStatus] = SP_REACT.useState(null);
@@ -188,20 +596,20 @@ const Content = () => {
     }, []);
     const handleInstallCore = async () => {
         setInstallingCore(true);
-        toaster.toast({ title: "EasyTier", body: "正在在线下载官方核心组件，请稍候..." });
+        toaster.toast({ title: "EasyTier", body: t("toast_install_start") });
         try {
             const res = await installEasyTier();
             if (res && res.success) {
-                toaster.toast({ title: "EasyTier", body: res.message || "核心安装成功并就绪！" });
+                toaster.toast({ title: "EasyTier", body: res.message || t("toast_install_ok") });
                 await loadData();
                 await loadConfigData();
             }
             else {
-                toaster.toast({ title: "EasyTier", body: `安装失败: ${res?.message || "网络或解压异常"}` });
+                toaster.toast({ title: "EasyTier", body: `${t("toast_install_fail")}${res?.message || ""}` });
             }
         }
         catch (e) {
-            toaster.toast({ title: "EasyTier", body: `安装异常: ${e?.message || e}` });
+            toaster.toast({ title: "EasyTier", body: `${t("toast_install_fail")}${e?.message || e}` });
         }
         finally {
             setInstallingCore(false);
@@ -211,11 +619,11 @@ const Content = () => {
         setActionLoading(true);
         const ok = await startService();
         if (ok) {
-            toaster.toast({ title: "EasyTier", body: "服务已启动" });
+            toaster.toast({ title: "EasyTier", body: t("toast_start_ok") });
             await loadData();
         }
         else {
-            toaster.toast({ title: "EasyTier", body: "启动失败" });
+            toaster.toast({ title: "EasyTier", body: t("toast_start_fail") });
         }
         setActionLoading(false);
     };
@@ -223,11 +631,11 @@ const Content = () => {
         setActionLoading(true);
         const ok = await stopService();
         if (ok) {
-            toaster.toast({ title: "EasyTier", body: "服务已停止" });
+            toaster.toast({ title: "EasyTier", body: t("toast_stop_ok") });
             await loadData();
         }
         else {
-            toaster.toast({ title: "EasyTier", body: "停止失败" });
+            toaster.toast({ title: "EasyTier", body: t("toast_stop_fail") });
         }
         setActionLoading(false);
     };
@@ -235,18 +643,18 @@ const Content = () => {
         setActionLoading(true);
         const ok = await restartService();
         if (ok) {
-            toaster.toast({ title: "EasyTier", body: "服务已重启" });
+            toaster.toast({ title: "EasyTier", body: t("toast_restart_ok") });
             await loadData();
         }
         else {
-            toaster.toast({ title: "EasyTier", body: "重启失败" });
+            toaster.toast({ title: "EasyTier", body: t("toast_restart_fail") });
         }
         setActionLoading(false);
     };
     const handleToggleEnable = async (val) => {
         const ok = await toggleAutostart(val);
         if (ok) {
-            toaster.toast({ title: "EasyTier", body: val ? "已开启开机自启" : "已关闭开机自启" });
+            toaster.toast({ title: "EasyTier", body: val ? t("toast_autostart_on") : t("toast_autostart_off") });
             await loadData();
         }
     };
@@ -254,13 +662,13 @@ const Content = () => {
         const rawIp = ipWithMask.split("/")[0].trim();
         if (!rawIp)
             return;
-        setPingResults((prev) => ({ ...prev, [rawIp]: "测速中..." }));
+        setPingResults((prev) => ({ ...prev, [rawIp]: t("peers_pinging") }));
         const res = await pingTarget(rawIp);
         if (res.success) {
             setPingResults((prev) => ({ ...prev, [rawIp]: `${res.avg_ms} ms` }));
         }
         else {
-            setPingResults((prev) => ({ ...prev, [rawIp]: "超时/失败" }));
+            setPingResults((prev) => ({ ...prev, [rawIp]: t("peers_ping_fail") }));
         }
     };
     const handleFillPublicPeers = () => {
@@ -269,11 +677,11 @@ const Content = () => {
             "tcp://39.108.52.138:11010"
         ].join("\n");
         setPeersInput((prev) => (prev.trim() ? `${prev.trim()}\n${defaultPeers}` : defaultPeers));
-        toaster.toast({ title: "EasyTier", body: "已追加官方公共节点" });
+        toaster.toast({ title: "EasyTier", body: t("toast_added_public") });
     };
     const handleSaveQuickConfig = async () => {
         if (!netName.trim()) {
-            toaster.toast({ title: "EasyTier", body: "请填写网络名称" });
+            toaster.toast({ title: "EasyTier", body: t("toast_enter_net_name") });
             return;
         }
         setActionLoading(true);
@@ -295,12 +703,12 @@ const Content = () => {
             disable_kcp_input: true,
         });
         if (ok) {
-            toaster.toast({ title: "EasyTier", body: "配置已保存并重载" });
+            toaster.toast({ title: "EasyTier", body: t("toast_save_ok") });
             await loadConfigData();
             await loadData();
         }
         else {
-            toaster.toast({ title: "EasyTier", body: "配置保存失败" });
+            toaster.toast({ title: "EasyTier", body: t("toast_save_fail") });
         }
         setActionLoading(false);
     };
@@ -308,38 +716,40 @@ const Content = () => {
         setActionLoading(true);
         const ok = await saveConfig(rawToml);
         if (ok) {
-            toaster.toast({ title: "EasyTier", body: "原始配置已保存" });
+            toaster.toast({ title: "EasyTier", body: t("toast_save_raw_ok") });
             await loadConfigData();
             await loadData();
         }
         else {
-            toaster.toast({ title: "EasyTier", body: "保存失败" });
+            toaster.toast({ title: "EasyTier", body: t("toast_save_fail") });
         }
         setActionLoading(false);
     };
     const handleOpenWebUi = async () => {
+        toaster.toast({ title: "EasyTier", body: t("toast_open_web") });
         const ok = await openWebUi();
-        if (ok) {
-            toaster.toast({ title: "EasyTier", body: "正在打开 Web 控制台..." });
-        }
-        else {
-            toaster.toast({ title: "EasyTier", body: `请在浏览器访问 http://127.0.0.1:${webInfo?.port || 21010}` });
+        if (!ok) {
+            toaster.toast({ title: "EasyTier", body: `http://127.0.0.1:${webInfo?.port || 21010}` });
         }
     };
     if (loading && !status) {
         return (SP_JSX.jsx(DFL.PanelSection, { children: SP_JSX.jsx("div", { style: { display: "flex", justifyContent: "center", padding: "20px" }, children: SP_JSX.jsx(DFL.Spinner, {}) }) }));
     }
+    // 语言设置模块 (置于底部，方便切换)
+    const languageSection = (SP_JSX.jsxs(DFL.PanelSection, { title: t("lang_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("lang_label"), description: langPref === "auto"
+                        ? `${t("lang_auto")} → ${resolvedLang.toUpperCase()}`
+                        : resolvedLang.toUpperCase() }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px", width: "100%" }, children: [SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("auto"), children: [SP_JSX.jsx(FaGlobe, { style: { marginRight: 4 } }), " ", langPref === "auto" ? "✓ " : "", t("lang_auto")] }), SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("en"), children: [langPref === "en" ? "✓ " : "", t("lang_en")] }), SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("zh"), children: [langPref === "zh" ? "✓ " : "", t("lang_zh")] }), SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: () => handleSetLang("ja"), children: [langPref === "ja" ? "✓ " : "", t("lang_ja")] })] }) })] }));
     // Tab 1: 运行状态
-    const statusContent = (SP_JSX.jsxs("div", { children: [status && !status.installed && (SP_JSX.jsxs(DFL.PanelSection, { title: "\uD83D\uDE80 \u6838\u5FC3\u7EC4\u4EF6\u4E00\u952E\u5B89\u88C5", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u672A\u68C0\u6D4B\u5230 EasyTier \u6838\u5FC3", description: "\u7CFB\u7EDF\u5C1A\u672A\u5B89\u88C5\u6216\u672A\u68C0\u6D4B\u5230 easytier-core\u3002\u70B9\u51FB\u4E0B\u65B9\u6309\u94AE\u5373\u53EF\u4E00\u952E\u5728\u7EBF\u4E0B\u8F7D\u5B98\u65B9\u6700\u65B0 x86_64 \u6838\u5FC3\u5E76\u81EA\u52A8\u521D\u59CB\u5316\u7CFB\u7EDF\u5B88\u62A4\u670D\u52A1\uFF0C\u514D\u53BB\u7EC8\u7AEF\u547D\u4EE4\u884C\u64CD\u4F5C\u3002" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? (SP_JSX.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }, children: [SP_JSX.jsx(DFL.Spinner, {}), " \u6B63\u5728\u4E0B\u8F7D\u4E0E\u90E8\u7F72\u6838\u5FC3\u7EC4\u4EF6..."] })) : ("🚀 一键在线下载并安装 EasyTier 核心") }) })] })), SP_JSX.jsxs(DFL.PanelSection, { title: "\u8FD0\u884C\u72B6\u6001", children: [status?.core_installed && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u6838\u5FC3\u7248\u672C", description: status.core_version ? `v${status.core_version}` : "已就绪", children: SP_JSX.jsx(DFL.ButtonItem, { layout: "inline", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? "更新中..." : "重新安装/更新" }) }) })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u670D\u52A1\u72B6\u6001", description: status?.active ? "正在运行中" : "已停止", children: SP_JSX.jsx("span", { style: { color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }, children: status?.active ? "● ACTIVE" : "● STOPPED" }) }) }), status?.active && nodeInfo && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u865A\u62DF IP", description: nodeInfo.virtual_ip || "获取中..." }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u4E3B\u673A\u540D", description: nodeInfo.hostname || "steamdeck" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "NAT \u6253\u6D1E\u7C7B\u578B", description: nodeInfo.nat_type || "未知" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "Peer ID", description: nodeInfo.peer_id || "-" }) })] }))] }), SP_JSX.jsxs(DFL.PanelSection, { title: "\u670D\u52A1\u63A7\u5236", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "\u5F00\u673A\u81EA\u542F", description: "\u968F\u7CFB\u7EDF\u542F\u52A8\u81EA\u52A8\u5B88\u62A4 EasyTier", checked: status?.enabled ?? false, onChange: handleToggleEnable, disabled: actionLoading }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { display: "flex", gap: "8px", width: "100%" }, children: [SP_JSX.jsx("div", { style: { flex: 1 }, children: !status?.active ? (SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: handleStart, disabled: actionLoading, children: [SP_JSX.jsx(FaPlay, { style: { marginRight: 6 } }), " \u542F\u52A8"] })) : (SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: handleStop, disabled: actionLoading, children: [SP_JSX.jsx(FaStop, { style: { marginRight: 6 } }), " \u505C\u6B62"] })) }), SP_JSX.jsx("div", { style: { flex: 1 }, children: SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: handleRestart, disabled: actionLoading, children: [SP_JSX.jsx(FaRedo, { style: { marginRight: 6 } }), " \u91CD\u542F"] }) })] }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: loadData, disabled: actionLoading, children: "\u5237\u65B0\u8282\u70B9\u4E0E\u72B6\u6001" }) })] }), SP_JSX.jsx(DFL.PanelSection, { title: `组网 Peers (${peers.length})`, children: peers.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u6682\u65E0\u5BF9\u7AEF\u8282\u70B9", description: status?.active ? "等待连接 Peers..." : "请先启动服务" }) })) : (peers.map((peer, idx) => {
+    const statusContent = (SP_JSX.jsxs("div", { children: [status && !status.installed && (SP_JSX.jsxs(DFL.PanelSection, { title: t("core_install_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("core_install_not_found"), description: t("core_install_desc") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? (SP_JSX.jsxs("div", { style: { display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }, children: [SP_JSX.jsx(DFL.Spinner, {}), " ", t("core_installing")] })) : (t("core_install_btn")) }) })] })), SP_JSX.jsxs(DFL.PanelSection, { title: t("status_title"), children: [status?.core_installed && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_core_ver"), description: status.core_version ? `v${status.core_version}` : t("core_ready"), children: SP_JSX.jsx(DFL.ButtonItem, { layout: "inline", onClick: handleInstallCore, disabled: installingCore || actionLoading, children: installingCore ? t("core_updating") : t("core_reinstall") }) }) })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_service"), description: status?.active ? t("status_running") : t("status_stopped"), children: SP_JSX.jsx("span", { style: { color: status?.active ? "#4caf50" : "#f44336", fontWeight: "bold" }, children: status?.active ? "● ACTIVE" : "● STOPPED" }) }) }), status?.active && nodeInfo && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_vip"), description: nodeInfo.virtual_ip || t("status_fetching") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_hostname"), description: nodeInfo.hostname || "steamdeck" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_nat"), description: nodeInfo.nat_type || t("status_unknown") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("status_peer_id"), description: nodeInfo.peer_id || "-" }) })] }))] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("ctrl_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("ctrl_autostart"), description: t("ctrl_autostart_desc"), checked: status?.enabled ?? false, onChange: handleToggleEnable, disabled: actionLoading }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { display: "flex", gap: "8px", width: "100%" }, children: [SP_JSX.jsx("div", { style: { flex: 1 }, children: !status?.active ? (SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: handleStart, disabled: actionLoading, children: [SP_JSX.jsx(FaPlay, { style: { marginRight: 6 } }), " ", t("ctrl_start")] })) : (SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: handleStop, disabled: actionLoading, children: [SP_JSX.jsx(FaStop, { style: { marginRight: 6 } }), " ", t("ctrl_stop")] })) }), SP_JSX.jsx("div", { style: { flex: 1 }, children: SP_JSX.jsxs(DFL.ButtonItem, { layout: "inline", onClick: handleRestart, disabled: actionLoading, children: [SP_JSX.jsx(FaRedo, { style: { marginRight: 6 } }), " ", t("ctrl_restart")] }) })] }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: loadData, disabled: actionLoading, children: t("ctrl_refresh") }) })] }), SP_JSX.jsx(DFL.PanelSection, { title: `${t("peers_title")} (${peers.length})`, children: peers.length === 0 ? (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("peers_none"), description: status?.active ? t("peers_none_desc_active") : t("peers_none_desc_stopped") }) })) : (peers.map((peer, idx) => {
                     const isLocal = peer.cost.toLowerCase() === "local";
                     const isP2P = peer.cost.toLowerCase().includes("p2p");
                     const rawIp = peer.ipv4.split("/")[0].trim();
                     const pingText = pingResults[rawIp];
                     const traffic = `${peer.rx || "0 B"} / ${peer.tx || "0 B"}`;
-                    return (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: peer.hostname || (isLocal ? "本机" : "未知主机"), description: SP_JSX.jsxs("div", { children: [SP_JSX.jsxs("div", { children: ["IP: ", peer.ipv4] }), SP_JSX.jsxs("div", { children: ["\u6A21\u5F0F:", " ", SP_JSX.jsx("span", { style: { color: isLocal ? "#8bc34a" : isP2P ? "#4caf50" : "#ff9800" }, children: peer.cost.toUpperCase() }), " | ", "\u5EF6\u65F6: ", peer.latency || "-", " | ", "\u4E22\u5305: ", peer.loss || "0%"] }), SP_JSX.jsxs("div", { style: { fontSize: "11px", color: "#8b949e", marginTop: "2px" }, children: ["\u6D41\u91CF(\u6536/\u53D1): ", traffic] }), pingText && (SP_JSX.jsxs("div", { style: { color: "#00e5ff", marginTop: "2px" }, children: ["Ping \u6D4B\u901F: ", pingText] }))] }), children: !isLocal && rawIp && (SP_JSX.jsx(DFL.ButtonItem, { layout: "inline", onClick: () => handlePing(peer.ipv4), disabled: actionLoading, children: "\u6D4B\u901F" })) }) }, idx));
-                })) })] }));
+                    return (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: peer.hostname || (isLocal ? t("peers_local_host") : t("peers_unknown_host")), description: SP_JSX.jsxs("div", { children: [SP_JSX.jsxs("div", { children: ["IP: ", peer.ipv4] }), SP_JSX.jsxs("div", { children: [t("peers_mode"), ":", " ", SP_JSX.jsx("span", { style: { color: isLocal ? "#8bc34a" : isP2P ? "#4caf50" : "#ff9800" }, children: peer.cost.toUpperCase() }), " | ", t("peers_lat"), ": ", peer.latency || "-", " | ", t("peers_loss"), ": ", peer.loss || "0%"] }), SP_JSX.jsxs("div", { style: { fontSize: "11px", color: "#8b949e", marginTop: "2px" }, children: [t("peers_traffic"), ": ", traffic] }), pingText && (SP_JSX.jsxs("div", { style: { color: "#00e5ff", marginTop: "2px" }, children: ["Ping: ", pingText] }))] }), children: !isLocal && rawIp && (SP_JSX.jsx(DFL.ButtonItem, { layout: "inline", onClick: () => handlePing(peer.ipv4), disabled: actionLoading, children: t("peers_ping_btn") })) }) }, idx));
+                })) }), languageSection] }));
     // Tab 2: 网络配置
-    const configContent = (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs(DFL.PanelSection, { title: "\u5FEB\u6377\u7EC4\u7F51\u914D\u7F6E", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: "\u7F51\u7EDC\u540D\u79F0 (Network Name)", description: "\u52A0\u5165\u6216\u521B\u5EFA\u7684\u5F02\u5730\u7EC4\u7F51\u540D\u79F0", value: netName, onChange: (e) => setNetName(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: "\u7F51\u7EDC\u5BC6\u7801 (Network Secret)", description: "\u7528\u4E8E\u7EC4\u7F51\u8282\u70B9\u95F4\u901A\u4FE1\u8BA4\u8BC1\u4E0E\u52A0\u5BC6", value: netSecret, bIsPassword: !showSecret, onChange: (e) => setNetSecret(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "\u663E\u793A\u5BC6\u7801", checked: showSecret, onChange: setShowSecret }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: "\u865A\u62DF IPv4 (\u53EF\u9009)", description: "\u5982 10.144.144.202/24\uFF0C\u7559\u7A7A\u5219\u7531\u7F51\u7EDC\u81EA\u52A8\u5206\u914D", value: ipv4, onChange: (e) => setIpv4(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: "\u4E3B\u673A\u540D\u79F0 (Hostname)", description: "\u5728\u7EC4\u7F51 Peers \u4E2D\u5C55\u793A\u7684\u8BBE\u5907\u540D", value: hostname, onChange: (e) => setHostname(e.target.value) }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: "\u8054\u673A\u4E0E\u6027\u80FD\u4F18\u5316", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "UDP \u5E7F\u64AD\u8F6C\u53D1", description: "\u5C40\u57DF\u7F51\u8054\u673A\u641C\u623F\u5FC5\u5907 (\u5E15\u9C81/\u6C42\u751F\u4E4B\u8DEF/MC\u7B49)", checked: udpRelay, onChange: setUdpRelay }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "\u5EF6\u8FDF\u4F18\u5148\u4F20\u8F93", description: "\u81EA\u52A8\u63A2\u6D4B\u7269\u7406\u6700\u4F18\u8DEF\u7EBF\uFF0C\u8054\u673A\u5BF9\u6218\u9996\u9009", checked: latencyFirst, onChange: setLatencyFirst }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "SmolTCP \u534F\u8BAE\u6808\u52A0\u901F", description: "\u542F\u7528\u72EC\u7ACB\u9AD8\u6027\u80FD\u7528\u6237\u6001 TCP/IP \u6808", checked: useSmoltcp, onChange: setUseSmoltcp }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "\u5141\u8BB8\u51FA\u53E3\u8282\u70B9 (Exit Node)", description: "\u652F\u6301\u5C06\u6D41\u91CF\u901A\u8FC7\u6307\u5B9A\u8282\u70B9\u8F6C\u53D1\u51FA\u53E3", checked: enableExitNode, onChange: setEnableExitNode }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: "\u5BF9\u7AEF Peers \u8282\u70B9\u914D\u7F6E", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { width: "100%" }, children: [SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", marginBottom: "6px" }, children: "\u6BCF\u884C\u4E00\u4E2A\u5BF9\u7AEF URI\uFF08\u5982 tcp://public.easytier.top:11010\uFF09:" }), SP_JSX.jsx("textarea", { style: {
+    const configContent = (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs(DFL.PanelSection, { title: t("cfg_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_net_name"), description: t("cfg_net_name_desc"), value: netName, onChange: (e) => setNetName(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_net_secret"), description: t("cfg_net_secret_desc"), value: netSecret, bIsPassword: !showSecret, onChange: (e) => setNetSecret(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("cfg_show_secret"), checked: showSecret, onChange: setShowSecret }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_vip"), description: t("cfg_vip_desc"), value: ipv4, onChange: (e) => setIpv4(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.TextField, { label: t("cfg_hostname"), description: t("cfg_hostname_desc"), value: hostname, onChange: (e) => setHostname(e.target.value) }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("opt_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_udp"), description: t("opt_udp_desc"), checked: udpRelay, onChange: setUdpRelay }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_latency"), description: t("opt_latency_desc"), checked: latencyFirst, onChange: setLatencyFirst }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_smoltcp"), description: t("opt_smoltcp_desc"), checked: useSmoltcp, onChange: setUseSmoltcp }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("opt_exit"), description: t("opt_exit_desc"), checked: enableExitNode, onChange: setEnableExitNode }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("peer_cfg_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsxs("div", { style: { width: "100%" }, children: [SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", marginBottom: "6px" }, children: t("peer_cfg_hint") }), SP_JSX.jsx("textarea", { style: {
                                         width: "100%",
                                         height: "90px",
                                         background: "#0e141b",
@@ -349,7 +759,7 @@ const Content = () => {
                                         padding: "8px",
                                         fontFamily: "monospace",
                                         fontSize: "12px",
-                                    }, value: peersInput, onChange: (e) => setPeersInput(e.target.value) })] }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleFillPublicPeers, children: "\u2795 \u4E00\u952E\u8FFD\u52A0\u5B98\u65B9\u516C\u5171\u8282\u70B9" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleSaveQuickConfig, disabled: actionLoading, children: "\uD83D\uDCBE \u4FDD\u5B58\u914D\u7F6E\u5E76\u5E94\u7528\u91CD\u542F" }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: "\u9AD8\u7EA7\u914D\u7F6E", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: "\u7F16\u8F91\u539F\u59CB config.toml", description: "\u5C55\u5F00\u76F4\u63A5\u67E5\u770B\u4E0E\u7F16\u8F91\u5B8C\u6574\u7684 TOML \u6587\u4EF6", checked: showRawToml, onChange: setShowRawToml }) }), showRawToml && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("textarea", { style: {
+                                    }, value: peersInput, onChange: (e) => setPeersInput(e.target.value) })] }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleFillPublicPeers, children: t("peer_cfg_add_public") }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleSaveQuickConfig, disabled: actionLoading, children: t("peer_cfg_save") }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("adv_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ToggleField, { label: t("adv_toml_toggle"), description: t("adv_toml_desc"), checked: showRawToml, onChange: setShowRawToml }) }), showRawToml && (SP_JSX.jsxs(SP_JSX.Fragment, { children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("textarea", { style: {
                                         width: "100%",
                                         height: "160px",
                                         background: "#0e141b",
@@ -359,23 +769,23 @@ const Content = () => {
                                         padding: "8px",
                                         fontFamily: "monospace",
                                         fontSize: "12px",
-                                    }, value: rawToml, onChange: (e) => setRawToml(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleSaveRawToml, disabled: actionLoading, children: "\u4FDD\u5B58\u539F\u59CB TOML \u914D\u7F6E" }) })] }))] })] }));
+                                    }, value: rawToml, onChange: (e) => setRawToml(e.target.value) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleSaveRawToml, disabled: actionLoading, children: t("adv_toml_save") }) })] }))] })] }));
     // Tab 3: Web 端管理
-    const webContent = (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs(DFL.PanelSection, { title: "\u5185\u7F6E Web \u63A7\u5236\u53F0", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "Web \u7BA1\u7406\u670D\u52A1", description: `运行状态: 正在监听端口 ${webInfo?.port || 21010}`, children: SP_JSX.jsx("span", { style: { color: "#4caf50", fontWeight: "bold" }, children: "\u25CF RUNNING" }) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleOpenWebUi, children: "\uD83D\uDE80 \u5728 Steam \u6D4F\u89C8\u5668\u4E2D\u6253\u5F00 Web \u4EEA\u8868\u76D8" }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: "\u8FDC\u7A0B\u4E0E\u79FB\u52A8\u7AEF\u7BA1\u7406", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u672C\u673A\u8BBF\u95EE (Steam Deck)", description: webInfo?.url_local || "http://127.0.0.1:21010" }) }), webInfo?.url_lan && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\uD83D\uDCF1 \u5C40\u57DF\u7F51 Wi-Fi \u8BBF\u95EE (\u63A8\u8350\u624B\u673A/PC)", description: webInfo.url_lan }) })), webInfo?.url_easytier && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\uD83C\uDF10 EasyTier \u5F02\u5730\u7EC4\u7F51\u5185\u8BBF\u95EE", description: webInfo.url_easytier }) })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }, children: "\u63D0\u793A\uFF1A\u53EA\u8981\u624B\u673A\u6216\u7535\u8111\u8FDE\u63A5\u540C\u4E00\u4E2A Wi-Fi\uFF0C\u5728\u6D4F\u89C8\u5668\u4E2D\u8F93\u5165\u4E0A\u8FF0\u300C\u5C40\u57DF\u7F51 Wi-Fi \u8BBF\u95EE\u300D\u5730\u5740\uFF0C\u5373\u53EF\u514D\u9664\u624B\u67C4\u8F93\u5165\u3001\u7528\u952E\u76D8\u9F20\u6807\u60EC\u610F\u7BA1\u7406\u7EC4\u7F51\u4E0E\u914D\u7F6E\uFF01" }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: "\u5B98\u65B9\u4E91\u7AEF\u63A7\u5236\u53F0", children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: "\u5B98\u65B9\u53EF\u89C6\u5316\u7BA1\u7406\u5E73\u53F0", description: "https://config-server.easytier.cn" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }, children: "EasyTier \u5B98\u65B9\u63D0\u4F9B\u4E86\u7EDF\u4E00\u7684\u591A\u8BBE\u5907\u4E91\u7AEF\u914D\u7F6E\u4E0E\u72B6\u6001\u670D\u52A1\u3002\u53EF\u5728 PC \u7AEF\u767B\u5F55\u5B98\u65B9\u5E73\u53F0\uFF0C\u7EDF\u7B79\u4E0B\u53D1\u7F51\u7EDC\u62D3\u6251\u3002" }) })] })] }));
+    const webContent = (SP_JSX.jsxs("div", { children: [SP_JSX.jsxs(DFL.PanelSection, { title: t("web_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_status"), description: `${t("web_status_listening")}: ${webInfo?.port || 21010}`, children: SP_JSX.jsx("span", { style: { color: "#4caf50", fontWeight: "bold" }, children: "\u25CF RUNNING" }) }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.ButtonItem, { layout: "below", onClick: handleOpenWebUi, children: t("web_open_btn") }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("web_remote_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_local"), description: webInfo?.url_local || "http://127.0.0.1:21010" }) }), webInfo?.url_lan && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_lan"), description: webInfo.url_lan }) })), webInfo?.url_easytier && (SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_easytier"), description: webInfo.url_easytier }) })), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }, children: t("web_hint") }) })] }), SP_JSX.jsxs(DFL.PanelSection, { title: t("web_cloud_title"), children: [SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx(DFL.Field, { label: t("web_cloud_service"), description: "https://config-server.easytier.cn" }) }), SP_JSX.jsx(DFL.PanelSectionRow, { children: SP_JSX.jsx("div", { style: { fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }, children: t("web_cloud_desc") }) })] })] }));
     const tabs = [
         {
             id: "status",
-            title: "状态",
+            title: t("tab_status"),
             content: statusContent,
         },
         {
             id: "config",
-            title: "配置",
+            title: t("tab_config"),
             content: configContent,
         },
         {
             id: "web",
-            title: "WebUI",
+            title: t("tab_web"),
             content: webContent,
         },
     ];
@@ -384,7 +794,7 @@ const Content = () => {
 var index = definePlugin(() => {
     return {
         name: "decky-easytier",
-        titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: "EasyTier \u7BA1\u7406\u5668" }),
+        titleView: SP_JSX.jsx("div", { className: DFL.staticClasses.Title, children: "EasyTier" }),
         content: SP_JSX.jsx(Content, {}),
         icon: SP_JSX.jsx(FaNetworkWired, {}),
         onDismount() { },
