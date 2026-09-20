@@ -10,81 +10,87 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
 </p>
 
-**Decky EasyTier** 是专为 Steam Deck 设计的 [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) 插件，用于在 SteamOS 游戏模式下无缝管理与监控 [EasyTier](https://github.com/EasyTier/EasyTier) 异地组网。
+<p align="center">
+  <b>English</b> | <a href="README_zh.md">简体中文</a> | <a href="README_ja.md">日本語</a>
+</p>
 
 ---
 
-## 🌟 核心特性
-
-- 🎮 **游戏模式深度适配**：完美贴合 SteamOS 快速访问菜单（QAM `...` 键），全手柄无障碍操作。
-- 🚀 **极简零门槛安装**：支持**一键终端脚本**或在**插件内一键在线自动安装官方核心**，彻底告别繁琐的手动下载配置。
-- 📱 **独立 Web 管理控制台**：内置轻量 Web 服务（默认端口 `21010`），同一 Wi-Fi 下使用手机或 PC 浏览器扫码/直接输入即可可视化管理配置。
-- 🟢 **实时组网状态监控**：直观展示虚拟 IP、主机名、NAT 打洞类型（FullCone / Symmetric 等）与 Peer ID。
-- 🌐 **Peers 对端列表与流量**：实时展示所有联机节点状态、连接模式（P2P 直连 / 中继 Relay）、链路往返延时与收发流量。
-- ⚡ **一键 Ping 延迟测速**：在手柄界面内即时测试与任意节点的真实单向/往返通信延迟。
-- ⚙️ **系统服务自动守护**：支持一键启动、停止、重启 EasyTier，开机自启（systemd）守护进程。
+**Decky EasyTier** is a [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) plugin tailored for Steam Deck, providing seamless management and real-time monitoring of [EasyTier](https://github.com/EasyTier/EasyTier) decentralized mesh VPN networks directly within SteamOS Gaming Mode.
 
 ---
 
-## 📦 安装方法
+## 🌟 Key Features
 
-### 方案一：终端极速一键安装（推荐首选 ⚡）
-切换至 Steam Deck **桌面模式**，打开终端 **Konsole**，直接粘贴运行以下命令即可：
+- 🎮 **Native Gaming Mode Integration**: Seamlessly embeds into the SteamOS Quick Access Menu (QAM `...` button), fully operable via gamepad.
+- 🚀 **Zero-Hassle One-Click Installation**: Supports one-liner terminal script and in-app automated core downloader—no manual binary copying required.
+- 📱 **Standalone Web Management Console**: Built-in lightweight web server (default port `21010`). Manage configurations via phone or PC browser over local Wi-Fi without struggling with on-screen typing.
+- 🟢 **Real-Time Network Diagnostics**: Instant visualization of Virtual IP, hostname, NAT penetration type (FullCone / Symmetric, etc.), and Peer ID.
+- 🌐 **Peer Topology & Traffic Monitoring**: Live peer lists displaying connection routes (P2P direct / relay), round-trip ping latency, and real-time RX/TX bandwidth.
+- ⚡ **Integrated Ping Tool**: Measure real network latency to any connected peer node with a single click.
+- ⚙️ **Automatic Systemd Service Management**: Start, stop, restart, and enable auto-start on boot via systemd.
+
+---
+
+## 📦 Installation
+
+### Method 1: One-Click Terminal Install (Recommended ⚡)
+Switch to Steam Deck **Desktop Mode**, open **Konsole**, and paste the following command:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Weicoz/decky-easytier/main/install.sh | bash
 ```
 
-> **国内用户加速源**（如遇 GitHub 连通缓慢）：
+> **Fast Mirror** (for users experiencing slow GitHub access):
 > ```bash
 > curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/Weicoz/decky-easytier/main/install.sh | bash
 > ```
 
-> 💡 **该脚本会自动完成：**
-> 1. 检测系统架构（x86_64）并自动下载 EasyTier 官方最新发布版本；
-> 2. 提取 `easytier-core`、`easytier-cli` 并配置 Linux 特权网络能力（`cap_net_admin`）；
-> 3. 初始化默认组网配置并注册 `systemd` 开机守护服务；
-> 4. 安装/更新 `decky-easytier` 插件并自动重载 Decky Loader。
+> 💡 **What the script does automatically:**
+> 1. Detects system architecture (`x86_64`) and downloads the latest official EasyTier release;
+> 2. Extracts `easytier-core` and `easytier-cli`, configuring Linux network capabilities (`cap_net_admin`);
+> 3. Generates the default configuration and registers the `systemd` daemon service;
+> 4. Deploys the `decky-easytier` plugin and triggers Decky Loader reload.
 
 ---
 
-### 方案二：插件内一键安装（免命令行 🎮）
-如果您已通过 Decky Loader 插件商店或解压安装了本插件：
+### Method 2: In-App One-Click Core Install (No Terminal Needed 🎮)
+If you have already installed the plugin via Decky Plugin Store or archive:
 
-1. 进入 Steam 游戏模式，按下右侧快捷键（`...`），打开 Decky Loader 菜单。
-2. 找到并打开 **EasyTier 管理器**。
-3. 界面将弹出 **【🚀 核心组件一键安装】** 提示，直接点击 **【一键在线下载并安装 EasyTier 核心】**。
-4. 插件将自动利用 Root 特权下载官方最新核心、写入系统守护服务并完成初始化，**全程无需进入桌面模式或输入任何 Linux 命令**！
+1. In Steam Gaming Mode, press the Quick Access button (`...`) to open Decky Loader.
+2. Select **EasyTier**.
+3. You will see a notification banner: **【🚀 EasyTier Core Setup Required】**. Simply click **【Download & Install EasyTier Core】**.
+4. The plugin will automatically download the official binary, set up system permissions, and launch the service—**no Desktop Mode or terminal commands required!**
 
 ---
 
-### 方案三：手动安装与本地构建（进阶开发者 🛠️）
-1. 克隆代码仓库：
+### Method 3: Manual Installation & Local Build (Advanced Developers 🛠️)
+1. Clone repository:
    ```bash
    git clone https://github.com/Weicoz/decky-easytier.git /home/deck/homebrew/plugins/decky-easytier
    ```
-2. 本地编译构建（需 Node.js >= 18 与 pnpm）：
+2. Build frontend (Requires Node.js >= 18 & pnpm):
    ```bash
    cd /home/deck/homebrew/plugins/decky-easytier
    pnpm install
    pnpm run build
    ```
-3. 放置 EasyTier 二进制：
-   - 核心文件：`/home/deck/.local/bin/easytier-core` 与 `easytier-cli`（需赋权 `chmod +x`）
-   - 配置文件：`/home/deck/.config/easytier/config.toml`
-   - 服务文件：`/etc/systemd/system/easytier.service`
+3. Place EasyTier Binaries:
+   - Core binaries: `/home/deck/.local/bin/easytier-core` and `easytier-cli` (`chmod +x` required)
+   - Configuration: `/home/deck/.config/easytier/config.toml`
+   - Service unit: `/etc/systemd/system/easytier.service`
 
 ---
 
-## 🌐 Web 控制台使用
+## 🌐 Web Console Guide
 
-插件内置独立 HTTP 服务，默认监听 `http://127.0.0.1:21010`。
-- **本地打开**：在游戏模式插件主页点击 **【打开 Web 管理】** 即可直接调起 Steam 浏览器。
-- **手机/电脑管理**：在插件主页查看 **局域网访问地址**（例如 `http://192.168.10.x:21010`），手机连接同一 Wi-Fi 后即可在浏览器中快速输入网络名称、密钥与公共节点，免去手柄打字烦恼。
+The plugin runs an embedded HTTP daemon listening on `http://127.0.0.1:21010` by default.
+- **Open on Device**: Tap **【Open Web Console】** inside the Decky plugin menu to launch the Steam browser.
+- **Remote Management**: Check the **LAN URL** displayed in the plugin (e.g., `http://192.168.10.x:21010`). Open this link on your smartphone or PC connected to the same Wi-Fi network to configure network identity and peers easily.
 
 ---
 
-## 📄 开源许可
+## 📄 License
 
-本项目基于 [MIT 许可证](LICENSE) 开源。
-EasyTier 版权归其原作者所有。
+This project is licensed under the [MIT License](LICENSE).
+EasyTier is copyrighted by its respective authors.
