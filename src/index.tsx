@@ -463,24 +463,21 @@ const Content: FC = () => {
         </PanelSectionRow>
 
         <PanelSectionRow>
-          <div style={{ display: "flex", gap: "8px", width: "100%" }}>
-            <div style={{ flex: 1 }}>
-              {!status?.active ? (
-                <ButtonItem layout="inline" onClick={handleStart} disabled={actionLoading}>
-                  <FaPlay style={{ marginRight: 6 }} /> {t("ctrl_start")}
-                </ButtonItem>
-              ) : (
-                <ButtonItem layout="inline" onClick={handleStop} disabled={actionLoading}>
-                  <FaStop style={{ marginRight: 6 }} /> {t("ctrl_stop")}
-                </ButtonItem>
-              )}
-            </div>
-            <div style={{ flex: 1 }}>
-              <ButtonItem layout="inline" onClick={handleRestart} disabled={actionLoading}>
-                <FaRedo style={{ marginRight: 6 }} /> {t("ctrl_restart")}
-              </ButtonItem>
-            </div>
-          </div>
+          {!status?.active ? (
+            <ButtonItem layout="below" onClick={handleStart} disabled={actionLoading}>
+              <FaPlay style={{ marginRight: 6 }} /> {t("ctrl_start")}
+            </ButtonItem>
+          ) : (
+            <ButtonItem layout="below" onClick={handleStop} disabled={actionLoading}>
+              <FaStop style={{ marginRight: 6 }} /> {t("ctrl_stop")}
+            </ButtonItem>
+          )}
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={handleRestart} disabled={actionLoading}>
+            <FaRedo style={{ marginRight: 6 }} /> {t("ctrl_restart")}
+          </ButtonItem>
         </PanelSectionRow>
 
         <PanelSectionRow>
@@ -508,38 +505,102 @@ const Content: FC = () => {
 
             return (
               <PanelSectionRow key={idx}>
-                <Field
-                  label={peer.hostname || (isLocal ? t("peers_local_host") : t("peers_unknown_host"))}
-                  description={
-                    <div>
-                      <div>IP: {peer.ipv4}</div>
-                      <div>
-                        {t("peers_mode")}:{" "}
-                        <span style={{ color: isLocal ? "#8bc34a" : isP2P ? "#4caf50" : "#ff9800" }}>
-                          {peer.cost.toUpperCase()}
-                        </span>
-                        {" | "}
-                        {t("peers_lat")}: {peer.latency || "-"}
-                        {" | "}
-                        {t("peers_loss")}: {peer.loss || "0%"}
-                      </div>
-                      <div style={{ fontSize: "11px", color: "#8b949e", marginTop: "2px" }}>
-                        {t("peers_traffic")}: {traffic}
-                      </div>
-                      {pingText && (
-                        <div style={{ color: "#00e5ff", marginTop: "2px" }}>
-                          Ping: {pingText}
-                        </div>
-                      )}
-                    </div>
-                  }
+                <div
+                  style={{
+                    width: "100%",
+                    maxWidth: "100%",
+                    background: "rgba(255, 255, 255, 0.04)",
+                    border: "1px solid rgba(255, 255, 255, 0.08)",
+                    borderRadius: "6px",
+                    padding: "8px 10px",
+                    boxSizing: "border-box",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "6px",
+                    overflow: "hidden",
+                  }}
                 >
+                  {/* 上部：节点信息展示 */}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <span
+                      style={{
+                        fontWeight: "bold",
+                        fontSize: "13px",
+                        color: "#ffffff",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        maxWidth: "180px",
+                      }}
+                    >
+                      {peer.hostname || (isLocal ? t("peers_local_host") : t("peers_unknown_host"))}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        background: isLocal
+                          ? "rgba(139, 195, 74, 0.2)"
+                          : isP2P
+                          ? "rgba(76, 175, 80, 0.2)"
+                          : "rgba(255, 152, 0, 0.2)",
+                        color: isLocal ? "#8bc34a" : isP2P ? "#4caf50" : "#ff9800",
+                        fontWeight: "bold",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {peer.cost.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div
+                    style={{
+                      fontSize: "11px",
+                      color: "#dcdedf",
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: "3px",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    <div>
+                      IP: <span style={{ fontFamily: "monospace", color: "#66c0f4" }}>{peer.ipv4}</span>
+                    </div>
+                    <div style={{ display: "flex", gap: "8px", color: "#8b949e", fontSize: "11px" }}>
+                      <span>{t("peers_lat")}: {peer.latency || "-"}</span>
+                      <span>{t("peers_loss")}: {peer.loss || "0%"}</span>
+                    </div>
+                    <div style={{ fontSize: "10px", color: "#8b949e" }}>
+                      {t("peers_traffic")}: {traffic}
+                    </div>
+                    {pingText && (
+                      <div style={{ fontSize: "11px", color: "#00e5ff", fontWeight: "bold", marginTop: "2px" }}>
+                        Ping: {pingText}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 下部：测试按钮整行居底 */}
                   {!isLocal && rawIp && (
-                    <ButtonItem layout="inline" onClick={() => handlePing(peer.ipv4)} disabled={actionLoading}>
-                      {t("peers_ping_btn")}
-                    </ButtonItem>
+                    <div style={{ marginTop: "4px", width: "100%" }}>
+                      <ButtonItem
+                        layout="below"
+                        onClick={() => handlePing(peer.ipv4)}
+                        disabled={actionLoading}
+                      >
+                        {t("peers_ping_btn")}
+                      </ButtonItem>
+                    </div>
                   )}
-                </Field>
+                </div>
               </PanelSectionRow>
             );
           })
@@ -818,14 +879,25 @@ const Content: FC = () => {
 
   return (
     <div
+      className="decky-easytier-container"
       style={{
         width: "100%",
         maxWidth: "100%",
         boxSizing: "border-box",
         overflowX: "hidden",
-        padding: "0 4px 30px 4px",
+        padding: "0 2px 30px 2px",
       }}
     >
+      <style>{`
+        .decky-easytier-container * {
+          box-sizing: border-box !important;
+          max-width: 100% !important;
+        }
+        .decky-easytier-container pre, .decky-easytier-container code {
+          white-space: pre-wrap !important;
+          word-break: break-all !important;
+        }
+      `}</style>
       {/* 顶部轻量级 Tab 胶囊切换栏：标准 Flex 宽度自适应、原生手柄焦点与防溢出 */}
       <Focusable
         style={{
