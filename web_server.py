@@ -25,11 +25,15 @@ WEB_HTML = """<!DOCTYPE html>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background: #0c1017; color: #e6edf3; padding: 24px; min-height: 100vh; }
-    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262d; padding-bottom: 16px; margin-bottom: 24px; }
-    .title { font-size: 24px; font-weight: 700; color: #58a6ff; display: flex; align-items: center; gap: 10px; }
+    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #21262d; padding-bottom: 16px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+    .title { font-size: 22px; font-weight: 700; color: #58a6ff; display: flex; align-items: center; gap: 10px; }
     .badge { font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: 600; }
     .badge-active { background: rgba(35, 134, 54, 0.2); color: #3fb950; border: 1px solid #238636; }
     .badge-stopped { background: rgba(218, 54, 51, 0.2); color: #f85149; border: 1px solid #da3633; }
+    .nav-bar { display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #21262d; padding-bottom: 10px; }
+    .nav-link { color: #8b949e; text-decoration: none; font-size: 14px; font-weight: 600; padding: 6px 14px; border-radius: 6px; }
+    .nav-link:hover, .nav-link.active { color: #58a6ff; background: #161b22; }
+    .nav-link.cloud { color: #b388ff; }
     .btn-group { display: flex; gap: 8px; }
     button { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; transition: 0.2s; }
     button:hover { background: #30363d; border-color: #8b949e; }
@@ -39,7 +43,7 @@ WEB_HTML = """<!DOCTYPE html>
     button.danger:hover { background: #b62324; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px; }
     .card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 18px; }
-    .card-title { font-size: 16px; font-weight: 600; color: #8b949e; margin-bottom: 14px; display: flex; justify-content: space-between; }
+    .card-title { font-size: 16px; font-weight: 600; color: #8b949e; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
     .kv { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
     .kv:last-child { border-bottom: none; }
     .kv-label { color: #8b949e; }
@@ -52,25 +56,33 @@ WEB_HTML = """<!DOCTYPE html>
     label { display: block; font-size: 13px; color: #8b949e; margin-bottom: 6px; font-weight: 500; }
     input[type="text"], input[type="password"], textarea { width: 100%; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 8px 12px; color: #c9d1d9; font-size: 14px; }
     input:focus, textarea:focus { outline: none; border-color: #58a6ff; }
-    textarea { font-family: monospace; resize: vertical; min-height: 140px; }
-    .toast { position: fixed; bottom: 20px; right: 20px; background: #1f6feb; color: #fff; padding: 12px 20px; border-radius: 6px; font-size: 14px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+    textarea { font-family: monospace; resize: vertical; min-height: 120px; }
+    .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .checkbox-item { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #c9d1d9; }
+    .toast { position: fixed; bottom: 20px; right: 20px; background: #1f6feb; color: #fff; padding: 12px 20px; border-radius: 6px; font-size: 14px; display: none; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1000; }
   </style>
 </head>
 <body>
   <div class="header">
     <div class="title">
-      <span>🌐 Decky EasyTier</span>
+      <span>🌐 Decky EasyTier 控制台</span>
       <span id="status-badge" class="badge badge-stopped">检测中...</span>
     </div>
     <div class="btn-group">
-      <button class="primary" onclick="doAction('start')">启动</button>
-      <button class="danger" onclick="doAction('stop')">停止</button>
-      <button onclick="doAction('restart')">重启</button>
+      <button class="primary" onclick="doAction('start')">启动服务</button>
+      <button class="danger" onclick="doAction('stop')">停止服务</button>
+      <button onclick="doAction('restart')">重启服务</button>
       <button onclick="fetchData()">刷新</button>
     </div>
   </div>
 
+  <div class="nav-bar">
+    <a href="#" class="nav-link active">🖥️ 本机管理面板</a>
+    <a href="https://config-server.easytier.cn" target="_blank" class="nav-link cloud">☁️ 官方云端管理平台 (Web Dashboard) ↗</a>
+  </div>
+
   <div class="grid">
+    <!-- 本机节点状态卡片 -->
     <div class="card">
       <div class="card-title">本机节点概览</div>
       <div class="kv"><span class="kv-label">虚拟 IPv4</span><span class="kv-val" id="node-ip">-</span></div>
@@ -78,10 +90,12 @@ WEB_HTML = """<!DOCTYPE html>
       <div class="kv"><span class="kv-label">Peer ID</span><span class="kv-val" id="node-peer-id">-</span></div>
       <div class="kv"><span class="kv-label">公网 IPv4</span><span class="kv-val" id="node-public-ip">-</span></div>
       <div class="kv"><span class="kv-label">NAT 打洞类型</span><span class="kv-val" id="node-nat">-</span></div>
+      <div class="kv"><span class="kv-label">监听端口</span><span class="kv-val" id="node-listeners" style="font-size: 11px;">-</span></div>
     </div>
 
+    <!-- 基础网络参数 -->
     <div class="card">
-      <div class="card-title">快捷网络配置</div>
+      <div class="card-title">网络身份设置</div>
       <div class="form-group">
         <label>网络名称 (Network Name)</label>
         <input type="text" id="cfg-net-name" placeholder="例如 my-game-net">
@@ -98,12 +112,53 @@ WEB_HTML = """<!DOCTYPE html>
         <label>主机名 (Hostname)</label>
         <input type="text" id="cfg-hostname" placeholder="steamdeck">
       </div>
-      <button class="primary" style="width: 100%;" onclick="saveQuickConfig()">保存并重载配置</button>
+    </div>
+
+    <!-- 高级与游戏联机优化 Flags -->
+    <div class="card">
+      <div class="card-title">游戏联机与性能特性</div>
+      <div class="checkbox-group">
+        <label class="checkbox-item">
+          <input type="checkbox" id="flag-udp-relay">
+          <span>🕹️ <strong>UDP 局域网广播转发</strong> (局域网搜房/对战必备)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="flag-latency-first">
+          <span>⚡ <strong>延迟优先模式 (Latency First)</strong> (优先 P2P 直连防丢包)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="flag-smoltcp">
+          <span>🚀 <strong>SmolTCP 用户态协议栈</strong> (降低内核上下文切换)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="flag-exit-node">
+          <span>🛡️ <strong>允许作为/使用出口节点 (Exit Node)</strong></span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="flag-no-quic">
+          <span>🔒 禁用 QUIC 输入 (强制标准 TCP/UDP 穿透)</span>
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="flag-no-kcp">
+          <span>⚡ 禁用 KCP 输入</span>
+        </label>
+      </div>
+
+      <div class="form-group" style="margin-top: 14px;">
+        <label>对端/公共节点列表 (一行一个 URI)</label>
+        <textarea id="cfg-peers" style="min-height: 80px;" placeholder="tcp://public.easytier.top:11010"></textarea>
+      </div>
+
+      <button class="primary" style="width: 100%; margin-top: 10px;" onclick="saveQuickConfig()">💾 保存配置并重启生效</button>
     </div>
   </div>
 
+  <!-- 拓扑节点表格 -->
   <div class="card" style="margin-bottom: 24px;">
-    <div class="card-title">组网 Peers 对端节点 (<span id="peer-count">0</span>)</div>
+    <div class="card-title">
+      <span>组网 Peers 对端节点 (<span id="peer-count">0</span>)</span>
+      <button onclick="fetchData()" style="padding: 2px 10px; font-size: 12px;">刷新列表</button>
+    </div>
     <table>
       <thead>
         <tr>
@@ -112,15 +167,17 @@ WEB_HTML = """<!DOCTYPE html>
           <th>连接类型</th>
           <th>链路延迟</th>
           <th>丢包率</th>
+          <th>流量(收/发)</th>
           <th>测速</th>
         </tr>
       </thead>
       <tbody id="peer-table-body">
-        <tr><td colspan="6" style="text-align: center; color: #8b949e;">正在加载 Peers...</td></tr>
+        <tr><td colspan="7" style="text-align: center; color: #8b949e;">正在加载 Peers...</td></tr>
       </tbody>
     </table>
   </div>
 
+  <!-- 原始 TOML 编辑 -->
   <div class="card">
     <div class="card-title">
       <span>原始 TOML 配置文件</span>
@@ -157,25 +214,28 @@ WEB_HTML = """<!DOCTYPE html>
           document.getElementById("node-peer-id").innerText = res.node.peer_id || "-";
           document.getElementById("node-public-ip").innerText = res.node.public_ipv4 || "-";
           document.getElementById("node-nat").innerText = res.node.nat_type || "-";
+          document.getElementById("node-listeners").innerText = (res.node.listeners || []).join(", ") || "-";
         }
 
         const peers = res.peers || [];
         document.getElementById("peer-count").innerText = peers.length;
         const tbody = document.getElementById("peer-table-body");
         if (peers.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #8b949e;">暂无对端节点</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: #8b949e;">暂无对端节点</td></tr>';
         } else {
           tbody.innerHTML = peers.map(p => {
             const isLocal = (p.cost || "").toLowerCase() === "local";
             const isP2P = (p.cost || "").toLowerCase().includes("p2p");
             const color = isLocal ? "#3fb950" : (isP2P ? "#58a6ff" : "#d29922");
             const rawIp = (p.ipv4 || "").split("/")[0].trim();
+            const traffic = `${p.rx || '0'} / ${p.tx || '0'}`;
             return `<tr>
               <td><strong>${p.hostname || (isLocal ? "本机" : "未知")}</strong></td>
               <td><code>${p.ipv4 || "-"}</code></td>
               <td><span style="color: ${color}; font-weight: 600;">${p.cost || "-"}</span></td>
               <td>${p.latency || "-"}</td>
               <td>${p.loss || "0%"}</td>
+              <td>${traffic}</td>
               <td>${(!isLocal && rawIp) ? `<button style="padding: 2px 8px; font-size: 12px;" onclick="pingPeer('${rawIp}', this)">Ping</button>` : "-"}</td>
             </tr>`;
           }).join("");
@@ -192,10 +252,19 @@ WEB_HTML = """<!DOCTYPE html>
           document.getElementById("raw-toml").value = res.raw;
         }
         if (res.quick) {
-          document.getElementById("cfg-net-name").value = res.quick.network_name || "";
-          document.getElementById("cfg-net-secret").value = res.quick.network_secret || "";
-          document.getElementById("cfg-ipv4").value = res.quick.ipv4 || "";
-          document.getElementById("cfg-hostname").value = res.quick.hostname || "steamdeck";
+          const q = res.quick;
+          document.getElementById("cfg-net-name").value = q.network_name || "";
+          document.getElementById("cfg-net-secret").value = q.network_secret || "";
+          document.getElementById("cfg-ipv4").value = q.ipv4 || "";
+          document.getElementById("cfg-hostname").value = q.hostname || "steamdeck";
+          document.getElementById("cfg-peers").value = (q.peers || []).join("\\n");
+
+          document.getElementById("flag-udp-relay").checked = !!q.enable_udp_broadcast_relay;
+          document.getElementById("flag-latency-first").checked = !!q.latency_first;
+          document.getElementById("flag-smoltcp").checked = !!q.use_smoltcp;
+          document.getElementById("flag-exit-node").checked = !!q.enable_exit_node;
+          document.getElementById("flag-no-quic").checked = !!q.disable_quic_input;
+          document.getElementById("flag-no-kcp").checked = !!q.disable_kcp_input;
         }
       } catch(e) {
         console.error(e);
@@ -218,12 +287,21 @@ WEB_HTML = """<!DOCTYPE html>
     }
 
     async function saveQuickConfig() {
+      const peersList = document.getElementById("cfg-peers").value.split("\\n").map(s => s.trim()).filter(Boolean);
       const payload = {
         network_name: document.getElementById("cfg-net-name").value.trim(),
         network_secret: document.getElementById("cfg-net-secret").value.trim(),
         ipv4: document.getElementById("cfg-ipv4").value.trim(),
-        hostname: document.getElementById("cfg-hostname").value.trim() || "steamdeck"
+        hostname: document.getElementById("cfg-hostname").value.trim() || "steamdeck",
+        peers: peersList,
+        enable_udp_broadcast_relay: document.getElementById("flag-udp-relay").checked,
+        latency_first: document.getElementById("flag-latency-first").checked,
+        use_smoltcp: document.getElementById("flag-smoltcp").checked,
+        enable_exit_node: document.getElementById("flag-exit-node").checked,
+        disable_quic_input: document.getElementById("flag-no-quic").checked,
+        disable_kcp_input: document.getElementById("flag-no-kcp").checked
       };
+
       showToast("正在保存配置并重启服务...");
       const res = await fetch("/api/config", {
         method: "POST",
@@ -235,7 +313,7 @@ WEB_HTML = """<!DOCTYPE html>
         loadConfig();
         setTimeout(fetchData, 1500);
       } else {
-        showToast("保存失败: " + (res.error || "未知错误"));
+        showToast("保存失败");
       }
     }
 
@@ -410,7 +488,10 @@ def get_quick_config():
     content = get_config()
     data = {
         "network_name": "", "network_secret": "",
-        "hostname": "steamdeck", "ipv4": "", "peers": []
+        "hostname": "steamdeck", "ipv4": "", "dhcp": False, "peers": [],
+        "latency_first": True, "enable_udp_broadcast_relay": True,
+        "use_smoltcp": True, "enable_exit_node": True,
+        "disable_quic_input": True, "disable_kcp_input": True
     }
     m = re.search(r'^\s*network_name\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
     if m: data["network_name"] = m.group(1)
@@ -420,6 +501,17 @@ def get_quick_config():
     if m: data["hostname"] = m.group(1)
     m = re.search(r'^\s*ipv4\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
     if m: data["ipv4"] = m.group(1)
+    m_dhcp = re.search(r'^\s*dhcp\s*=\s*(true|false)', content, re.MULTILINE | re.IGNORECASE)
+    if m_dhcp: data["dhcp"] = (m_dhcp.group(1).lower() == "true")
+
+    peers = re.findall(r'\[\[peer\]\][\s\S]*?uri\s*=\s*["\']([^"\']+)["\']', content)
+    data["peers"] = peers
+
+    for flag in ["latency_first", "enable_udp_broadcast_relay", "use_smoltcp", "enable_exit_node", "disable_quic_input", "disable_kcp_input"]:
+        m_f = re.search(rf'^\s*{flag}\s*=\s*(true|false)', content, re.MULTILINE | re.IGNORECASE)
+        if m_f:
+            data[flag] = (m_f.group(1).lower() == "true")
+
     return data
 
 
@@ -428,14 +520,54 @@ def save_quick_config(cfg):
     net_secret = cfg.get("network_secret", "").strip()
     hostname = cfg.get("hostname", "steamdeck").strip() or "steamdeck"
     ipv4 = cfg.get("ipv4", "").strip()
-    peers = cfg.get("peers", ["tcp://public.easytier.top:11010", "tcp://39.108.52.138:11010"])
+    peers = cfg.get("peers", [])
 
-    lines = [f'hostname = "{hostname}"', f'network_name = "{net_name}"', f'network_secret = "{net_secret}"']
-    if ipv4: lines.append(f'ipv4 = "{ipv4}"')
-    lines.append("")
+    if not isinstance(peers, list):
+        peers = [p.strip() for p in str(peers).splitlines() if p.strip()]
+
+    if not peers:
+        peers = [
+            "tcp://public.easytier.top:11010",
+            "tcp://39.108.52.138:11010"
+        ]
+
+    lines = [
+        f'hostname = "{hostname}"',
+        f'ipv6_public_addr_auto = true',
+        f'dhcp = false' if ipv4 else 'dhcp = true',
+        f'listeners = ["tcp://0.0.0.0:11010", "udp://0.0.0.0:11010", "wg://0.0.0.0:11011"]',
+    ]
+    if ipv4:
+        lines.append(f'ipv4 = "{ipv4}"')
+
+    lines.extend([
+        "",
+        "[network_identity]",
+        f'network_name = "{net_name}"',
+        f'network_secret = "{net_secret}"',
+        ""
+    ])
+
     for p in peers:
-        lines.append("[[peer]]\nuri = \"" + p + "\"")
-    lines.extend(["", "[flags]", "use_smoltcp = true", "latency_first = true", "enable_exit_node = true", "enable_udp_broadcast_relay = true", "proxy_forward_by_system = true", "relay_all_peer_rpc = true", ""])
+        if p:
+            lines.append("[[peer]]")
+            lines.append(f'uri = "{p}"')
+
+    lines.extend([
+        "",
+        "[flags]",
+        f'latency_first = {"true" if cfg.get("latency_first", True) else "false"}',
+        f'enable_udp_broadcast_relay = {"true" if cfg.get("enable_udp_broadcast_relay", True) else "false"}',
+        f'use_smoltcp = {"true" if cfg.get("use_smoltcp", True) else "false"}',
+        f'enable_exit_node = {"true" if cfg.get("enable_exit_node", True) else "false"}',
+        f'disable_quic_input = {"true" if cfg.get("disable_quic_input", True) else "false"}',
+        f'disable_kcp_input = {"true" if cfg.get("disable_kcp_input", True) else "false"}',
+        'proxy_forward_by_system = true',
+        'relay_all_peer_rpc = true',
+        'accept_dns = true',
+        ""
+    ])
+
     return save_config("\n".join(lines))
 
 
@@ -500,6 +632,7 @@ class WebHandler(BaseHTTPRequestHandler):
         if path == "/api/config":
             if "raw" in payload: ok = save_config(payload["raw"])
             elif "quick" in payload: ok = save_quick_config(payload["quick"])
+            elif "network_name" in payload: ok = save_quick_config(payload)
             else: self._send_json({"error": "Invalid"}, 400); return
             self._send_json({"success": ok})
             return

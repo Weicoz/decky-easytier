@@ -48,7 +48,14 @@ interface QuickConfig {
   network_secret: string;
   hostname: string;
   ipv4: string;
+  dhcp?: boolean;
   peers: string[];
+  latency_first?: boolean;
+  enable_udp_broadcast_relay?: boolean;
+  use_smoltcp?: boolean;
+  enable_exit_node?: boolean;
+  disable_quic_input?: boolean;
+  disable_kcp_input?: boolean;
 }
 
 interface WebInfo {
@@ -87,7 +94,12 @@ const Content: FC = () => {
   const [netSecret, setNetSecret] = useState<string>("");
   const [hostname, setHostname] = useState<string>("steamdeck");
   const [ipv4, setIpv4] = useState<string>("");
+  const [peersInput, setPeersInput] = useState<string>("");
   const [showSecret, setShowSecret] = useState<boolean>(false);
+  const [udpRelay, setUdpRelay] = useState<boolean>(true);
+  const [latencyFirst, setLatencyFirst] = useState<boolean>(true);
+  const [useSmoltcp, setUseSmoltcp] = useState<boolean>(true);
+  const [enableExitNode, setEnableExitNode] = useState<boolean>(true);
   const [rawToml, setRawToml] = useState<string>("");
   const [showRawToml, setShowRawToml] = useState<boolean>(false);
 
@@ -121,6 +133,11 @@ const Content: FC = () => {
         setNetSecret(qc.network_secret || "");
         setHostname(qc.hostname || "steamdeck");
         setIpv4(qc.ipv4 || "");
+        setPeersInput((qc.peers || []).join("\n"));
+        setUdpRelay(qc.enable_udp_broadcast_relay !== false);
+        setLatencyFirst(qc.latency_first !== false);
+        setUseSmoltcp(qc.use_smoltcp !== false);
+        setEnableExitNode(qc.enable_exit_node !== false);
       }
       setRawToml(raw || "");
     } catch (e) {
@@ -201,19 +218,41 @@ const Content: FC = () => {
     }
   };
 
+  const handleFillPublicPeers = () => {
+    const defaultPeers = [
+      "tcp://public.easytier.top:11010",
+      "tcp://39.108.52.138:11010"
+    ].join("\n");
+    setPeersInput((prev) => (prev.trim() ? `${prev.trim()}\n${defaultPeers}` : defaultPeers));
+    toaster.toast({ title: "EasyTier", body: "已追加官方公共节点" });
+  };
+
   const handleSaveQuickConfig = async () => {
     if (!netName.trim()) {
       toaster.toast({ title: "EasyTier", body: "请填写网络名称" });
       return;
     }
     setActionLoading(true);
+
+    const peersList = peersInput
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
     const ok = await saveQuickConfig({
       network_name: netName.trim(),
       network_secret: netSecret.trim(),
       hostname: hostname.trim() || "steamdeck",
       ipv4: ipv4.trim(),
-      peers: ["tcp://public.easytier.top:11010", "tcp://39.108.52.138:11010"],
+      peers: peersList.length > 0 ? peersList : ["tcp://public.easytier.top:11010", "tcp://39.108.52.138:11010"],
+      enable_udp_broadcast_relay: udpRelay,
+      latency_first: latencyFirst,
+      use_smoltcp: useSmoltcp,
+      enable_exit_node: enableExitNode,
+      disable_quic_input: true,
+      disable_kcp_input: true,
     });
+
     if (ok) {
       toaster.toast({ title: "EasyTier", body: "配置已保存并重载" });
       await loadConfigData();
@@ -424,6 +463,75 @@ const Content: FC = () => {
             onChange={(e) => setHostname(e.target.value)}
           />
         </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title="联机与性能优化">
+        <PanelSectionRow>
+          <ToggleField
+            label="UDP 广播转发"
+            description="局域网联机搜房必备 (帕鲁/求生之路/MC等)"
+            checked={udpRelay}
+            onChange={setUdpRelay}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ToggleField
+            label="延迟优先传输"
+            description="自动探测物理最优路线，联机对战首选"
+            checked={latencyFirst}
+            onChange={setLatencyFirst}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ToggleField
+            label="SmolTCP 协议栈加速"
+            description="启用独立高性能用户态 TCP/IP 栈"
+            checked={useSmoltcp}
+            onChange={setUseSmoltcp}
+          />
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ToggleField
+            label="允许出口节点 (Exit Node)"
+            description="支持将流量通过指定节点转发出口"
+            checked={enableExitNode}
+            onChange={setEnableExitNode}
+          />
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title="对端 Peers 节点配置">
+        <PanelSectionRow>
+          <div style={{ width: "100%" }}>
+            <div style={{ fontSize: "12px", color: "#8b949e", marginBottom: "6px" }}>
+              每行一个对端 URI（如 tcp://public.easytier.top:11010）:
+            </div>
+            <textarea
+              style={{
+                width: "100%",
+                height: "90px",
+                background: "#0e141b",
+                color: "#dcdedf",
+                border: "1px solid rgba(255,255,255,0.2)",
+                borderRadius: "4px",
+                padding: "8px",
+                fontFamily: "monospace",
+                fontSize: "12px",
+              }}
+              value={peersInput}
+              onChange={(e) => setPeersInput(e.target.value)}
+            />
+          </div>
+        </PanelSectionRow>
+
+        <PanelSectionRow>
+          <ButtonItem layout="below" onClick={handleFillPublicPeers}>
+            ➕ 一键追加官方公共节点
+          </ButtonItem>
+        </PanelSectionRow>
 
         <PanelSectionRow>
           <ButtonItem layout="below" onClick={handleSaveQuickConfig} disabled={actionLoading}>
@@ -511,7 +619,21 @@ const Content: FC = () => {
 
         <PanelSectionRow>
           <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }}>
-            提示：只要在同一个局域网（Wi-Fi）下，手机或电脑浏览器直接输入上述局域网地址，即可无需手柄、用键盘鼠标惬意管理组网与配置！
+            提示：只要在同一个 Wi-Fi 下，手机或电脑浏览器直接输入上述局域网地址，即可免除手柄输入、用键鼠管理组网！
+          </div>
+        </PanelSectionRow>
+      </PanelSection>
+
+      <PanelSection title="官方云端控制台">
+        <PanelSectionRow>
+          <Field
+            label="官方可视化管理平台"
+            description="https://config-server.easytier.cn"
+          />
+        </PanelSectionRow>
+        <PanelSectionRow>
+          <div style={{ fontSize: "12px", color: "#8b949e", lineHeight: "1.5" }}>
+            EasyTier 官方提供了统一的多设备云端配置与状态服务。可在 PC 端登录官方平台，统筹下发网络拓扑。
           </div>
         </PanelSectionRow>
       </PanelSection>

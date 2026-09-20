@@ -266,7 +266,14 @@ class Plugin:
             "network_secret": "",
             "hostname": "steamdeck",
             "ipv4": "",
-            "peers": []
+            "dhcp": False,
+            "peers": [],
+            "latency_first": True,
+            "enable_udp_broadcast_relay": True,
+            "use_smoltcp": True,
+            "enable_exit_node": True,
+            "disable_quic_input": True,
+            "disable_kcp_input": True
         }
 
         m_name = re.search(r'^\s*network_name\s*=\s*["\']([^"\']+)["\']', content, re.MULTILINE)
@@ -285,8 +292,18 @@ class Plugin:
         if m_ip:
             data["ipv4"] = m_ip.group(1)
 
-        peers = re.findall(r'\[\[peer\]\]\s+uri\s*=\s*["\']([^"\']+)["\']', content)
+        m_dhcp = re.search(r'^\s*dhcp\s*=\s*(true|false)', content, re.MULTILINE | re.IGNORECASE)
+        if m_dhcp:
+            data["dhcp"] = (m_dhcp.group(1).lower() == "true")
+
+        peers = re.findall(r'\[\[peer\]\][\s\S]*?uri\s*=\s*["\']([^"\']+)["\']', content)
         data["peers"] = peers
+
+        for flag in ["latency_first", "enable_udp_broadcast_relay", "use_smoltcp", "enable_exit_node", "disable_quic_input", "disable_kcp_input"]:
+            m_f = re.search(rf'^\s*{flag}\s*=\s*(true|false)', content, re.MULTILINE | re.IGNORECASE)
+            if m_f:
+                data[flag] = (m_f.group(1).lower() == "true")
+
         return data
 
     async def save_quick_config(self, cfg: Dict[str, Any]) -> bool:
@@ -308,13 +325,21 @@ class Plugin:
 
         lines = [
             f'hostname = "{hostname}"',
-            f'network_name = "{net_name}"',
-            f'network_secret = "{net_secret}"',
+            f'ipv6_public_addr_auto = true',
+            f'dhcp = false' if ipv4 else 'dhcp = true',
+            f'listeners = ["tcp://0.0.0.0:11010", "udp://0.0.0.0:11010", "wg://0.0.0.0:11011"]',
         ]
         if ipv4:
             lines.append(f'ipv4 = "{ipv4}"')
 
-        lines.append("")
+        lines.extend([
+            "",
+            "[network_identity]",
+            f'network_name = "{net_name}"',
+            f'network_secret = "{net_secret}"',
+            ""
+        ])
+
         for p in peers:
             if p:
                 lines.append("[[peer]]")
@@ -323,12 +348,15 @@ class Plugin:
         lines.extend([
             "",
             "[flags]",
-            "use_smoltcp = true",
-            "latency_first = true",
-            "enable_exit_node = true",
-            "enable_udp_broadcast_relay = true",
-            "proxy_forward_by_system = true",
-            "relay_all_peer_rpc = true",
+            f'latency_first = {"true" if cfg.get("latency_first", True) else "false"}',
+            f'enable_udp_broadcast_relay = {"true" if cfg.get("enable_udp_broadcast_relay", True) else "false"}',
+            f'use_smoltcp = {"true" if cfg.get("use_smoltcp", True) else "false"}',
+            f'enable_exit_node = {"true" if cfg.get("enable_exit_node", True) else "false"}',
+            f'disable_quic_input = {"true" if cfg.get("disable_quic_input", True) else "false"}',
+            f'disable_kcp_input = {"true" if cfg.get("disable_kcp_input", True) else "false"}',
+            'proxy_forward_by_system = true',
+            'relay_all_peer_rpc = true',
+            'accept_dns = true',
             ""
         ])
 
