@@ -19,6 +19,11 @@ EASYTIER_CLI = "/home/deck/.local/bin/easytier-cli"
 CONFIG_PATH = "/home/deck/.config/easytier/config.toml"
 
 
+SYSTEMCTL = "/usr/bin/systemctl"
+PGREP = "/usr/bin/pgrep"
+ENV = dict(os.environ, PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin")
+
+
 class Plugin:
     async def _main(self):
         # 确保权限
@@ -31,12 +36,32 @@ class Plugin:
 
     async def get_service_status(self) -> Dict[str, Any]:
         """获取 systemd 服务与进程状态"""
-        res = subprocess.run(["systemctl", "is-active", "easytier"], capture_output=True, text=True)
-        active_status = res.stdout.strip()
-        is_active = (active_status == "active")
+        active_status = ""
+        is_active = False
+        is_enabled = False
 
-        res_enabled = subprocess.run(["systemctl", "is-enabled", "easytier"], capture_output=True, text=True)
-        is_enabled = (res_enabled.stdout.strip() == "enabled")
+        try:
+            res = subprocess.run([SYSTEMCTL, "is-active", "easytier"], capture_output=True, text=True, env=ENV)
+            active_status = res.stdout.strip()
+            is_active = (active_status == "active")
+        except Exception:
+            pass
+
+        # 进程检测兜底
+        if not is_active:
+            try:
+                res_p = subprocess.run([PGREP, "-f", "easytier-core"], capture_output=True, env=ENV)
+                if res_p.returncode == 0:
+                    is_active = True
+                    active_status = "active (process)"
+            except Exception:
+                pass
+
+        try:
+            res_enabled = subprocess.run([SYSTEMCTL, "is-enabled", "easytier"], capture_output=True, text=True, env=ENV)
+            is_enabled = (res_enabled.stdout.strip() == "enabled")
+        except Exception:
+            pass
 
         return {
             "installed": os.path.exists(EASYTIER_CORE) and os.path.exists(CONFIG_PATH),
@@ -46,21 +71,33 @@ class Plugin:
         }
 
     async def start_service(self) -> bool:
-        res = subprocess.run(["systemctl", "start", "easytier"])
-        return res.returncode == 0
+        try:
+            res = subprocess.run([SYSTEMCTL, "start", "easytier"], env=ENV)
+            return res.returncode == 0
+        except Exception:
+            return False
 
     async def stop_service(self) -> bool:
-        res = subprocess.run(["systemctl", "stop", "easytier"])
-        return res.returncode == 0
+        try:
+            res = subprocess.run([SYSTEMCTL, "stop", "easytier"], env=ENV)
+            return res.returncode == 0
+        except Exception:
+            return False
 
     async def restart_service(self) -> bool:
-        res = subprocess.run(["systemctl", "restart", "easytier"])
-        return res.returncode == 0
+        try:
+            res = subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV)
+            return res.returncode == 0
+        except Exception:
+            return False
 
     async def toggle_autostart(self, enable: bool) -> bool:
         action = "enable" if enable else "disable"
-        res = subprocess.run(["systemctl", action, "easytier"])
-        return res.returncode == 0
+        try:
+            res = subprocess.run([SYSTEMCTL, action, "easytier"], env=ENV)
+            return res.returncode == 0
+        except Exception:
+            return False
 
     async def get_node_info(self) -> Dict[str, Any]:
         """获取本机 EasyTier 节点详细信息"""
@@ -68,7 +105,7 @@ class Plugin:
             return {"error": "easytier-cli not found"}
 
         try:
-            res = subprocess.run([EASYTIER_CLI, "node"], capture_output=True, text=True, timeout=3)
+            res = subprocess.run([EASYTIER_CLI, "node"], capture_output=True, text=True, timeout=3, env=ENV)
             if res.returncode != 0:
                 return {"error": res.stderr.strip() or "Failed to run node command"}
 
@@ -108,7 +145,7 @@ class Plugin:
             return []
 
         try:
-            res = subprocess.run([EASYTIER_CLI, "peer"], capture_output=True, text=True, timeout=3)
+            res = subprocess.run([EASYTIER_CLI, "peer"], capture_output=True, text=True, timeout=3, env=ENV)
             if res.returncode != 0:
                 return []
 
@@ -153,7 +190,8 @@ class Plugin:
                 ["ping", "-c", "3", "-W", "2", target_ip],
                 capture_output=True,
                 text=True,
-                timeout=5
+                timeout=5,
+                env=ENV
             )
             out = res.stdout
             if res.returncode == 0:
