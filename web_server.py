@@ -121,6 +121,7 @@ WEB_HTML = """<!DOCTYPE html>
       <span id="status-badge" class="badge badge-stopped">检测中...</span>
     </div>
     <div class="btn-group">
+      <button id="btn-autostart" onclick="toggleAutostart()">⚙️ 开机自启: 检测中</button>
       <button class="primary" onclick="doAction('start')">启动服务</button>
       <button class="danger" onclick="doAction('stop')">停止服务</button>
       <button onclick="doAction('restart')">重启服务</button>
@@ -265,6 +266,8 @@ WEB_HTML = """<!DOCTYPE html>
       setTimeout(() => { t.style.display = "none"; }, 3000);
     }
 
+    let currentAutostart = false;
+
     async function fetchData() {
       try {
         const res = await fetch("/api/status").then(r => r.json());
@@ -275,6 +278,16 @@ WEB_HTML = """<!DOCTYPE html>
         } else {
           badge.className = "badge badge-stopped";
           badge.innerText = "● 已停止 (STOPPED)";
+        }
+
+        if (res.status) {
+          currentAutostart = !!res.status.enabled;
+          const autoBtn = document.getElementById("btn-autostart");
+          if (autoBtn) {
+            autoBtn.innerText = currentAutostart ? "⚙️ 开机自启: 已开启" : "⚙️ 开机自启: 已关闭";
+            autoBtn.style.color = currentAutostart ? "#3fb950" : "#8b949e";
+            autoBtn.style.borderColor = currentAutostart ? "#238636" : "#30363d";
+          }
         }
 
         const installBanner = document.getElementById("install-banner");
@@ -367,6 +380,34 @@ WEB_HTML = """<!DOCTYPE html>
         showToast("操作失败");
       }
       setTimeout(fetchData, 1000);
+    }
+
+    async function toggleAutostart() {
+      const next = !currentAutostart;
+      const act = next ? "enable" : "disable";
+      showToast(next ? "正在开启开机自启..." : "正在关闭开机自启...");
+      try {
+        const res = await fetch("/api/action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: act })
+        }).then(r => r.json());
+        if (res.success) {
+          showToast(next ? "✅ 已开启开机自启" : "✅ 已关闭开机自启");
+          currentAutostart = next;
+          const autoBtn = document.getElementById("btn-autostart");
+          if (autoBtn) {
+            autoBtn.innerText = next ? "⚙️ 开机自启: 已开启" : "⚙️ 开机自启: 已关闭";
+            autoBtn.style.color = next ? "#3fb950" : "#8b949e";
+            autoBtn.style.borderColor = next ? "#238636" : "#30363d";
+          }
+          setTimeout(fetchData, 800);
+        } else {
+          showToast("❌ 切换开机自启失败");
+        }
+      } catch(e) {
+        showToast("❌ 网络或权限异常: " + e);
+      }
     }
 
     async function doInstallCore() {
@@ -955,6 +996,8 @@ class WebHandler(BaseHTTPRequestHandler):
             if act == "start": ok = subprocess.run([SYSTEMCTL, "start", "easytier"], env=ENV).returncode == 0
             elif act == "stop": ok = subprocess.run([SYSTEMCTL, "stop", "easytier"], env=ENV).returncode == 0
             elif act == "restart": ok = subprocess.run([SYSTEMCTL, "restart", "easytier"], env=ENV).returncode == 0
+            elif act == "enable": ok = subprocess.run([SYSTEMCTL, "enable", "easytier"], env=ENV).returncode == 0
+            elif act == "disable": ok = subprocess.run([SYSTEMCTL, "disable", "easytier"], env=ENV).returncode == 0
             else: self._send_json({"error": "Invalid action"}, 400); return
             self._send_json({"success": ok})
             return
