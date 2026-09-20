@@ -1,8 +1,14 @@
 # Decky EasyTier
 
-[![Decky Plugin](https://img.shields.io/badge/Decky-Plugin-blue.svg)](https://github.com/SteamDeckHomebrew/decky-loader)
-[![EasyTier](https://img.shields.io/badge/EasyTier-v2.6.4-green.svg)](https://github.com/EasyTier/EasyTier)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <img src="./assets/banner.png" alt="Decky EasyTier Banner" width="100%" />
+</p>
+
+<p align="center">
+  <a href="https://github.com/SteamDeckHomebrew/decky-loader"><img src="https://img.shields.io/badge/Decky-Plugin-blue.svg" alt="Decky Plugin" /></a>
+  <a href="https://github.com/EasyTier/EasyTier"><img src="https://img.shields.io/badge/EasyTier-v2.6.4-green.svg" alt="EasyTier" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+</p>
 
 **Decky EasyTier** 是专为 Steam Deck 设计的 [Decky Loader](https://github.com/SteamDeckHomebrew/decky-loader) 插件，用于在 SteamOS 游戏模式下无缝管理与监控 [EasyTier](https://github.com/EasyTier/EasyTier) 异地组网。
 

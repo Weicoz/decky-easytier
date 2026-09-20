@@ -6,3 +6,17 @@ dist/
 __pycache__/
 .vscode/
 .idea/
+
+# 敏感配置与密钥防泄露
+*.toml
+*.conf
+*.key
+*.pem
+*.cert
+*.crt
+*.env*
+config.json
+secret*
+*.b64
+*.tar.gz
+*.zip

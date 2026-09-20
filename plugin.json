@@ -6,6 +6,6 @@
   "publish": {
     "tags": ["network", "vpn", "root", "utility"],
     "description": "EasyTier VPN mesh networking management plugin for Steam Deck",
-    "image": "https://raw.githubusercontent.com/EasyTier/EasyTier/main/docs/images/easytier.png"
+    "image": "https://raw.githubusercontent.com/Weicoz/decky-easytier/main/assets/banner.png"
   }
 }
